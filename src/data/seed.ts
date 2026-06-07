@@ -2,6 +2,7 @@ import type { Session, StudentResult } from './types';
 import { getSessions, getResults } from './store';
 import { decisionNodes } from './decisions';
 import { computeScores, extractMisconceptions } from './store';
+import { analyzeReasoning } from './ai';
 
 export const DEMO_SESSION_ID = 'demo-session-001';
 const DEMO_SESSION_CODE = 'JMS1607';
@@ -36,11 +37,27 @@ const demoStudentB: StudentResult = {
   completedAt: Date.now() - 10000,
 };
 
-function computeResult(r: StudentResult): StudentResult {
+function computeResultWithAI(r: StudentResult): StudentResult {
+  const scores = computeScores(r.decisions, decisionNodes);
+  const optionTags = extractMisconceptions(r.decisions, decisionNodes);
+
+  // Also run AI reasoning analysis for each decision
+  const aiTags: string[] = [];
+  for (const d of r.decisions) {
+    const node = decisionNodes.find(n => n.id === d.nodeId);
+    if (!node) continue;
+    const analysis = analyzeReasoning(d.reasoning, d.optionId, node, 'on');
+    for (const tag of analysis.misconceptionTags) {
+      if (!aiTags.includes(tag)) aiTags.push(tag);
+    }
+  }
+
+  const mergedTags = [...new Set([...optionTags, ...aiTags])];
+
   return {
     ...r,
-    finalScores: computeScores(r.decisions, decisionNodes),
-    misconceptionTags: extractMisconceptions(r.decisions, decisionNodes),
+    finalScores: scores,
+    misconceptionTags: mergedTags,
   };
 }
 
@@ -60,8 +77,8 @@ export function seedDemoData() {
   localStorage.setItem('jamestown_sessions', JSON.stringify(sessions));
 
   const results = getResults();
-  const resultA = computeResult(demoStudentA);
-  const resultB = computeResult(demoStudentB);
+  const resultA = computeResultWithAI(demoStudentA);
+  const resultB = computeResultWithAI(demoStudentB);
   results.push(resultA, resultB);
   localStorage.setItem('jamestown_results', JSON.stringify(results));
 }

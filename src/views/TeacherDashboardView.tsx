@@ -1,7 +1,8 @@
-import { ArrowLeft, AlertTriangle, BookOpen, Users, ArrowRight, TrendingUp } from 'lucide-react';
+import { ArrowLeft, AlertTriangle, BookOpen, Users, ArrowRight, TrendingUp, Brain, Sparkles } from 'lucide-react';
 import type { View, Scores, StudentResult } from '../data/types';
 import { getSessionById, getResults } from '../data/store';
 import { decisionNodes, misconceptionMeta } from '../data/decisions';
+import { generateTeacherInsights, generateSmartComparison } from '../data/ai';
 import ScoreBar from '../components/ScoreBar';
 
 interface Props {
@@ -50,9 +51,17 @@ export default function TeacherDashboardView({ sessionId, onNavigate }: Props) {
     avgScores.governance = Math.round(avgScores.governance / results.length);
   }
 
+  // AI-powered insights
+  const aiInsights = generateTeacherInsights(results, decisionNodes);
+
   // Two students for comparison
   const studentA = results[0];
   const studentB = results[1];
+
+  // AI-powered smart comparison
+  const smartComparisons = studentA && studentB
+    ? generateSmartComparison(studentA, studentB)
+    : [];
 
   return (
     <div className="min-h-screen bg-navy-50">
@@ -67,7 +76,9 @@ export default function TeacherDashboardView({ sessionId, onNavigate }: Props) {
                 <span>&middot;</span>
                 <span>{results.length} student{results.length !== 1 ? 's' : ''}</span>
               </div>
-              <h1 className="text-2xl font-bold">Teacher Insights Dashboard</h1>
+              <h1 className="text-2xl font-bold flex items-center gap-2">
+                <Brain className="w-6 h-6 text-amber-400" /> AI Insights Dashboard
+              </h1>
             </div>
             <button
               onClick={() => onNavigate({ kind: 'home' })}
@@ -128,6 +139,49 @@ export default function TeacherDashboardView({ sessionId, onNavigate }: Props) {
           </div>
         </div>
 
+        {/* AI-Powered Insights — THE WOW SECTION */}
+        {aiInsights.length > 0 && (
+          <div className="card border-2 border-amber-200 bg-gradient-to-br from-white to-amber-50/30">
+            <div className="flex items-center gap-2 mb-4">
+              <Brain className="w-6 h-6 text-amber-500" />
+              <h2 className="text-lg font-bold text-navy-800">AI-Detected Patterns</h2>
+              <span className="text-xs bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                <Sparkles className="w-3 h-3" /> AI ANALYSIS
+              </span>
+            </div>
+            <div className="space-y-4">
+              {aiInsights.map((insight, i) => (
+                <div key={i} className={`rounded-lg p-4 border ${
+                  insight.severity === 'high' ? 'bg-red-50 border-red-200' :
+                  insight.severity === 'medium' ? 'bg-amber-50 border-amber-200' :
+                  'bg-navy-50 border-navy-200'
+                }`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className={`text-xs font-bold uppercase px-2 py-0.5 rounded ${
+                        insight.severity === 'high' ? 'bg-red-200 text-red-800' :
+                        insight.severity === 'medium' ? 'bg-amber-200 text-amber-800' :
+                        'bg-navy-200 text-navy-800'
+                      }`}>
+                        {insight.severity} priority
+                      </span>
+                      <span className="font-bold text-navy-800 text-sm">{insight.pattern}</span>
+                    </div>
+                    <span className="text-xs text-navy-400">
+                      {insight.students.join(', ')}
+                    </span>
+                  </div>
+                  <p className="text-navy-700 text-sm leading-relaxed mb-2">{insight.description}</p>
+                  <div className="flex items-start gap-2 bg-white/60 rounded p-2">
+                    <BookOpen className="w-4 h-4 text-blue-600 mt-0.5 shrink-0" />
+                    <p className="text-sm text-navy-600"><span className="font-semibold">Teaching move:</span> {insight.reteachSuggestion}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Reteaching Actions */}
         {topMisconceptions.length > 0 && (
           <div className="card border-l-4 border-l-blue-500">
@@ -153,7 +207,7 @@ export default function TeacherDashboardView({ sessionId, onNavigate }: Props) {
           </div>
         )}
 
-        {/* Student Comparison WOW */}
+        {/* Student Comparison with AI Smart Analysis */}
         {studentA && studentB && (
           <div>
             <div className="flex items-center gap-2 mb-4">
@@ -168,11 +222,27 @@ export default function TeacherDashboardView({ sessionId, onNavigate }: Props) {
               <StudentCard result={studentB} highlight="amber" />
             </div>
 
-            {/* Insight comparison */}
-            <div className="card mt-6">
-              <h3 className="font-bold text-navy-800 mb-3">Key Insight</h3>
-              <CompareInsight a={studentA} b={studentB} />
-            </div>
+            {/* AI Smart Comparison */}
+            {smartComparisons.length > 0 && (
+              <div className="card mt-6 border-l-4 border-l-amber-400">
+                <div className="flex items-center gap-2 mb-3">
+                  <Brain className="w-5 h-5 text-amber-500" />
+                  <h3 className="font-bold text-navy-800">AI Comparative Analysis</h3>
+                </div>
+                <div className="space-y-4">
+                  {smartComparisons.map((comp, i) => (
+                    <div key={i}>
+                      <h4 className="font-semibold text-navy-800 text-sm mb-1">{comp.headline}</h4>
+                      <p className="text-navy-700 text-sm leading-relaxed mb-2">{comp.analysis}</p>
+                      <div className="flex items-start gap-2 bg-blue-50 rounded p-2">
+                        <BookOpen className="w-4 h-4 text-blue-600 mt-0.5 shrink-0" />
+                        <p className="text-sm text-navy-600"><span className="font-semibold">Teaching move:</span> {comp.teachingMove}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -213,13 +283,17 @@ export default function TeacherDashboardView({ sessionId, onNavigate }: Props) {
 }
 
 function StudentCard({ result, highlight }: { result: StudentResult; highlight: string }) {
-
   const borderColor = highlight === 'emerald' ? 'border-t-emerald-500' : 'border-t-amber-500';
+
+  // Analyze reasoning quality for each decision
+  const avgWords = result.decisions.reduce((sum, d) => sum + d.reasoning.split(/\s+/).filter(Boolean).length, 0) / Math.max(result.decisions.length, 1);
+
   return (
     <div className={`card border-t-4 ${borderColor}`}>
       <h3 className="text-lg font-bold text-navy-800 mb-1">{result.displayName}</h3>
-      <div className="text-xs text-navy-400 mb-3">
-        Total: {Object.values(result.finalScores).reduce((a, b) => a + b, 0)}/400
+      <div className="flex items-center gap-3 text-xs text-navy-400 mb-3">
+        <span>Total: {Object.values(result.finalScores).reduce((a, b) => a + b, 0)}/400</span>
+        <span>Avg reasoning: {Math.round(avgWords)} words</span>
       </div>
       <ScoreBar scores={result.finalScores} />
 
@@ -231,6 +305,7 @@ function StudentCard({ result, highlight }: { result: StudentResult; highlight: 
             <div key={d.nodeId} className="text-sm">
               <span className="font-semibold text-navy-700">{i + 1}. {node?.title}:</span>{' '}
               <span className="text-navy-600">{opt?.shortText}</span>
+              <p className="text-navy-400 italic text-xs mt-0.5 truncate">"{d.reasoning}"</p>
             </div>
           );
         })}
@@ -248,54 +323,6 @@ function StudentCard({ result, highlight }: { result: StudentResult; highlight: 
           })}
         </div>
       )}
-    </div>
-  );
-}
-
-function CompareInsight({ a, b }: { a: StudentResult; b: StudentResult }) {
-  // Find a key difference
-  const aDip = a.finalScores.diplomacy;
-  const bDip = b.finalScores.diplomacy;
-  const aGov = a.finalScores.governance;
-  const bGov = b.finalScores.governance;
-  const aSurv = a.finalScores.survival;
-  const bSurv = b.finalScores.survival;
-
-  const insights: string[] = [];
-
-  if (Math.abs(aDip - bDip) > 20) {
-    const higher = aDip > bDip ? a.displayName : b.displayName;
-    const lower = aDip > bDip ? b.displayName : a.displayName;
-    insights.push(
-      `${higher} scored much higher in Powhatan Diplomacy because they chose trade and cooperation. ${lower} chose force or avoidance, which hurt diplomatic relations — a pattern the real Jamestown colonists also experienced.`
-    );
-  }
-
-  if (Math.abs(aGov - bGov) > 20) {
-    const higher = aGov > bGov ? a.displayName : b.displayName;
-    insights.push(
-      `${higher} leaned toward self-governance, mirroring the House of Burgesses. This connected to VS.3 standard about representative government in colonial Virginia.`
-    );
-  }
-
-  if (Math.abs(aSurv - bSurv) > 20) {
-    const lower = aSurv < bSurv ? a.displayName : b.displayName;
-    insights.push(
-      `${lower}'s lower survival score shows the danger of depending on supply ships — a misconception many students share about early Jamestown.`
-    );
-  }
-
-  if (insights.length === 0) {
-    insights.push(
-      `${a.displayName} and ${b.displayName} made different choices but ended up with similar outcomes. This is a great chance to discuss how multiple paths can lead to survival — or failure — in colonial Virginia.`
-    );
-  }
-
-  return (
-    <div className="space-y-3">
-      {insights.map((text, i) => (
-        <p key={i} className="text-navy-700 text-sm leading-relaxed">{text}</p>
-      ))}
     </div>
   );
 }

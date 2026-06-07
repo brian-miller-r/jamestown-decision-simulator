@@ -1,49 +1,14 @@
-import { ArrowRight, Trophy, Target, Lightbulb } from 'lucide-react';
-import type { View, Scores } from '../data/types';
+import { ArrowRight, Trophy, Target, Lightbulb, Brain, BookOpen } from 'lucide-react';
+import type { View } from '../data/types';
 import { getResult } from '../data/store';
-import ScoreBar from '../components/ScoreBar';
 import { decisionNodes, misconceptionMeta } from '../data/decisions';
+import { generateDebrief } from '../data/ai';
+import ScoreBar from '../components/ScoreBar';
 
 interface Props {
   sessionId: string;
   studentId: string;
   onNavigate: (v: View) => void;
-}
-
-function getStrength(scores: Scores): string {
-  const entries = Object.entries(scores) as [keyof Scores, number][];
-  const best = entries.sort((a, b) => b[1] - a[1])[0];
-  const labels: Record<keyof Scores, string> = {
-    survival: 'Survival Readiness',
-    economy: 'Colony Economy',
-    diplomacy: 'Powhatan Diplomacy',
-    governance: 'Governance Stability',
-  };
-  return labels[best[0]];
-}
-
-function getGrowth(scores: Scores): string {
-  const entries = Object.entries(scores) as [keyof Scores, number][];
-  const worst = entries.sort((a, b) => a[1] - b[1])[0];
-  const labels: Record<keyof Scores, string> = {
-    survival: 'Survival Readiness',
-    economy: 'Colony Economy',
-    diplomacy: 'Powhatan Diplomacy',
-    governance: 'Governance Stability',
-  };
-  return labels[worst[0]];
-}
-
-function getNextStep(scores: Scores): string {
-  const entries = Object.entries(scores) as [keyof Scores, number][];
-  const worst = entries.sort((a, b) => a[1] - b[1])[0];
-  const hints: Record<keyof Scores, string> = {
-    survival: 'Think about what colonists needed most: clean water, food, and safety from disease.',
-    economy: 'Consider how trading with the Powhatan and growing local crops built wealth.',
-    diplomacy: 'Reflect on how cooperation, not conflict, helped both colonists and Powhatan survive.',
-    governance: 'Remember that the House of Burgesses showed people can govern themselves wisely.',
-  };
-  return hints[worst[0]];
 }
 
 export default function StudentDebriefView({ sessionId, studentId, onNavigate }: Props) {
@@ -60,6 +25,8 @@ export default function StudentDebriefView({ sessionId, studentId, onNavigate }:
     );
   }
 
+  const ai = generateDebrief(result, decisionNodes);
+
   return (
     <div className="min-h-screen bg-navy-50">
       <header className="bg-navy-900 text-white">
@@ -73,6 +40,15 @@ export default function StudentDebriefView({ sessionId, studentId, onNavigate }:
       </header>
 
       <main className="max-w-3xl mx-auto px-6 py-8 space-y-6">
+        {/* AI-generated narrative */}
+        <div className="card border-l-4 border-l-amber-400">
+          <div className="flex items-center gap-2 mb-3">
+            <Brain className="w-5 h-5 text-amber-500" />
+            <h2 className="text-sm font-bold text-navy-800 uppercase tracking-wide">AI Colony Summary</h2>
+          </div>
+          <p className="text-navy-700 leading-relaxed">{ai.narrative}</p>
+        </div>
+
         {/* Final Scores */}
         <div className="card">
           <h2 className="text-lg font-bold text-navy-800 mb-4">Final Colony Scores</h2>
@@ -104,23 +80,32 @@ export default function StudentDebriefView({ sessionId, studentId, onNavigate }:
           </div>
         </div>
 
-        {/* Three-section debrief */}
+        {/* AI-powered debrief cards */}
         <div className="grid md:grid-cols-3 gap-4">
           <div className="card text-center border-t-4 border-t-emerald-500">
             <Target className="w-6 h-6 text-emerald-600 mx-auto mb-2" />
             <h3 className="text-sm font-bold text-navy-800 uppercase mb-1">Strength</h3>
-            <p className="text-navy-700 font-semibold">{getStrength(result.finalScores)}</p>
+            <p className="text-navy-700 text-sm leading-relaxed">{ai.strengthNarrative}</p>
           </div>
           <div className="card text-center border-t-4 border-t-amber-500">
             <Lightbulb className="w-6 h-6 text-amber-600 mx-auto mb-2" />
             <h3 className="text-sm font-bold text-navy-800 uppercase mb-1">Growth Area</h3>
-            <p className="text-navy-700 font-semibold">{getGrowth(result.finalScores)}</p>
+            <p className="text-navy-700 text-sm leading-relaxed">{ai.growthNarrative}</p>
           </div>
           <div className="card text-center border-t-4 border-t-blue-500">
             <ArrowRight className="w-6 h-6 text-blue-600 mx-auto mb-2" />
             <h3 className="text-sm font-bold text-navy-800 uppercase mb-1">Next Step</h3>
-            <p className="text-navy-600 text-sm">{getNextStep(result.finalScores)}</p>
+            <p className="text-navy-600 text-sm leading-relaxed">{ai.nextStepPersonalized}</p>
           </div>
+        </div>
+
+        {/* Historical connection */}
+        <div className="card border-l-4 border-l-navy-600">
+          <div className="flex items-center gap-2 mb-2">
+            <BookOpen className="w-4 h-4 text-navy-600" />
+            <h3 className="text-sm font-bold text-navy-800 uppercase tracking-wide">SOL Connection</h3>
+          </div>
+          <p className="text-navy-700 text-sm leading-relaxed">{ai.historicalConnection}</p>
         </div>
 
         {/* Misconception coaching */}
