@@ -1,0 +1,247 @@
+import { useState, useEffect } from 'react';
+import { ArrowRight, Anchor } from 'lucide-react';
+import type { View, StudentDecision, Scores } from '../data/types';
+import { decisionNodes } from '../data/decisions';
+import { getSessionById, saveResult, computeScores, extractMisconceptions } from '../data/store';
+import ScoreBar from '../components/ScoreBar';
+import Timer from '../components/Timer';
+
+interface Props {
+  sessionId: string;
+  studentId: string;
+  studentName: string;
+  onNavigate: (v: View) => void;
+}
+
+type Phase = 'intro' | 'decide' | 'coach';
+
+export default function StudentSimView({ sessionId, studentId, studentName, onNavigate }: Props) {
+  const [phase, setPhase] = useState<Phase>('intro');
+  const [currentIdx, setCurrentIdx] = useState(0);
+  const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  const [reasoning, setReasoning] = useState('');
+  const [decisions, setDecisions] = useState<StudentDecision[]>([]);
+  const [runningScores, setRunningScores] = useState<Scores>({ survival: 30, economy: 30, diplomacy: 30, governance: 30 });
+  const [startedAt] = useState(Date.now());
+  const [finished, setFinished] = useState(false);
+
+  const session = getSessionById(sessionId);
+  const node = decisionNodes[currentIdx];
+
+  useEffect(() => {
+    if (decisions.length > 0) {
+      setRunningScores(computeScores(decisions, decisionNodes));
+    }
+  }, [decisions]);
+
+  if (!session) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-6">
+        <div className="card text-center max-w-md">
+          <h2 className="text-xl font-bold text-navy-800 mb-2">Session Not Found</h2>
+          <p className="text-navy-600 mb-4">This session may have been removed.</p>
+          <button className="btn-primary" onClick={() => onNavigate({ kind: 'home' })}>Back to Home</button>
+        </div>
+      </div>
+    );
+  }
+
+  // INTRO
+  if (phase === 'intro') {
+    return (
+      <div className="min-h-screen bg-navy-900 text-white flex items-center justify-center px-6">
+        <div className="max-w-lg w-full text-center">
+          <div className="w-20 h-20 rounded-full bg-navy-700 flex items-center justify-center mx-auto mb-6">
+            <Anchor className="w-10 h-10 text-amber-400" />
+          </div>
+          <h1 className="text-3xl font-bold mb-3">Welcome, {studentName}</h1>
+          <p className="text-navy-200 text-lg mb-2">The year is 1607.</p>
+          <p className="text-navy-300 mb-6 leading-relaxed">
+            You have just arrived in Virginia aboard three small ships.
+            The land is new, the Powhatan people are watching, and your
+            colony's future depends on your choices. Over the next 7 minutes,
+            you will face 4 critical decisions. Think carefully — and explain
+            your reasoning each time.
+          </p>
+          <div className="bg-navy-800 rounded-lg p-4 mb-8 text-sm text-navy-200">
+            <p className="font-semibold text-amber-400 mb-1">Your colony will be scored on:</p>
+            <p>Survival Readiness &middot; Colony Economy &middot; Powhatan Diplomacy &middot; Governance Stability</p>
+          </div>
+          <button className="btn-primary bg-amber-500 hover:bg-amber-600 text-navy-900" onClick={() => setPhase('decide')}>
+            Begin the Simulation
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // DECIDE
+  if (phase === 'decide') {
+    return (
+      <div className="min-h-screen bg-navy-50">
+        <header className="bg-white border-b border-navy-100 sticky top-0 z-10">
+          <div className="max-w-3xl mx-auto px-6 py-3 flex items-center justify-between">
+            <div>
+              <span className="text-xs text-navy-400 font-semibold uppercase tracking-wide">
+                Decision {currentIdx + 1} of {decisionNodes.length}
+              </span>
+              <h1 className="text-base font-bold text-navy-800">{node.title}</h1>
+            </div>
+            <Timer startedAt={startedAt} finished={finished} />
+          </div>
+        </header>
+
+        <main className="max-w-3xl mx-auto px-6 py-6">
+          <div className="card mb-4">
+            <p className="text-navy-600 text-sm leading-relaxed mb-4">{node.historicalContext}</p>
+            <h2 className="text-lg font-bold text-navy-800">{node.prompt}</h2>
+          </div>
+
+          <div className="space-y-3 mb-6">
+            {node.options.map(opt => (
+              <button
+                key={opt.id}
+                onClick={() => setSelectedOption(opt.id)}
+                className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
+                  selectedOption === opt.id
+                    ? 'border-navy-700 bg-navy-50'
+                    : 'border-navy-100 bg-white hover:border-navy-300'
+                }`}
+              >
+                <span className="font-semibold text-navy-800">{opt.shortText}</span>
+                <span className="block text-sm text-navy-500 mt-1">{opt.text}</span>
+              </button>
+            ))}
+          </div>
+
+          {selectedOption && (
+            <div className="card mb-6 animate-in">
+              <label className="block text-sm font-semibold text-navy-700 mb-2">
+                Why did you choose this? (1-2 sentences)
+              </label>
+              <textarea
+                value={reasoning}
+                onChange={e => setReasoning(e.target.value)}
+                placeholder="Explain your thinking..."
+                className="w-full px-4 py-3 border-2 border-navy-100 rounded-lg focus:border-navy-500 focus:outline-none transition-colors resize-none"
+                rows={3}
+              />
+              <button
+                className="btn-primary mt-4 flex items-center gap-2"
+                disabled={!reasoning.trim()}
+                onClick={handleConfirm}
+              >
+                Confirm Decision <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+        </main>
+      </div>
+    );
+  }
+
+  // COACH
+  if (phase === 'coach') {
+    const chosenOpt = node.options.find(o => o.id === selectedOption);
+    if (!chosenOpt) return null;
+
+    const hasMisconception = !!chosenOpt.misconceptionTag;
+    const coachingText = hasMisconception
+      ? chosenOpt.coachingMisconception ?? chosenOpt.coachingCorrect
+      : chosenOpt.coachingCorrect;
+
+    return (
+      <div className="min-h-screen bg-navy-50">
+        <header className="bg-white border-b border-navy-100 sticky top-0 z-10">
+          <div className="max-w-3xl mx-auto px-6 py-3 flex items-center justify-between">
+            <div>
+              <span className="text-xs text-navy-400 font-semibold uppercase tracking-wide">
+                Decision {currentIdx + 1} of {decisionNodes.length}
+              </span>
+              <h1 className="text-base font-bold text-navy-800">Coach Feedback</h1>
+            </div>
+            <Timer startedAt={startedAt} finished={finished} />
+          </div>
+        </header>
+
+        <main className="max-w-3xl mx-auto px-6 py-6">
+          <div className={`card mb-4 border-l-4 ${hasMisconception ? 'border-l-amber-400' : 'border-l-emerald-500'}`}>
+            <div className="flex items-center gap-2 mb-2">
+              <span className={`text-xs font-bold uppercase tracking-wide ${hasMisconception ? 'text-amber-600' : 'text-emerald-600'}`}>
+                {hasMisconception ? 'Something to Think About' : 'Great Thinking!'}
+              </span>
+            </div>
+            <p className="text-navy-700 leading-relaxed">{coachingText}</p>
+          </div>
+
+          <div className="card mb-6">
+            <h3 className="text-sm font-semibold text-navy-700 mb-3">Colony Status</h3>
+            <ScoreBar scores={runningScores} />
+          </div>
+
+          <button className="btn-primary flex items-center gap-2" onClick={handleNext}>
+            {currentIdx < decisionNodes.length - 1 ? (
+              <>Next Decision <ArrowRight className="w-4 h-4" /></>
+            ) : (
+              'See Your Results'
+            )}
+          </button>
+        </main>
+      </div>
+    );
+  }
+
+  return null;
+
+  function handleConfirm() {
+    if (!selectedOption || !reasoning.trim()) return;
+    const newDecision: StudentDecision = {
+      nodeId: node.id,
+      optionId: selectedOption,
+      reasoning: reasoning.trim(),
+      timestamp: Date.now(),
+    };
+    const updatedDecisions = [...decisions, newDecision];
+    setDecisions(updatedDecisions);
+
+    // Save partial result
+    const scores = computeScores(updatedDecisions, decisionNodes);
+    const tags = extractMisconceptions(updatedDecisions, decisionNodes);
+    saveResult({
+      id: studentId,
+      sessionId,
+      displayName: studentName,
+      decisions: updatedDecisions,
+      finalScores: scores,
+      misconceptionTags: tags,
+      completedAt: 0,
+    });
+
+    setPhase('coach');
+  }
+
+  function handleNext() {
+    if (currentIdx < decisionNodes.length - 1) {
+      setCurrentIdx(currentIdx + 1);
+      setSelectedOption(null);
+      setReasoning('');
+      setPhase('decide');
+    } else {
+      // Complete
+      setFinished(true);
+      const finalDecisions = decisions;
+      const finalScores = computeScores(finalDecisions, decisionNodes);
+      const finalTags = extractMisconceptions(finalDecisions, decisionNodes);
+      saveResult({
+        id: studentId,
+        sessionId,
+        displayName: studentName,
+        decisions: finalDecisions,
+        finalScores: finalScores,
+        misconceptionTags: finalTags,
+        completedAt: Date.now(),
+      });
+      onNavigate({ kind: 'student-debrief', sessionId, studentId });
+    }
+  }
+}
