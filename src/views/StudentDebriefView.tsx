@@ -93,7 +93,7 @@ export default function StudentDebriefView({ sessionId, studentId, onNavigate }:
               const node = decisionNodes.find(n => n.id === d.nodeId);
               const opt = node?.options.find(o => o.id === d.optionId);
               return (
-                <div key={d.nodeId} className="border-l-3 border-navy-200 pl-4">
+                <div key={d.nodeId} className="border-l-[3px] border-navy-200 pl-4">
                   <div className="text-xs text-navy-400 font-semibold">Decision {i + 1}</div>
                   <div className="font-semibold text-navy-800">{node?.title}</div>
                   <div className="text-sm text-navy-600 mt-1">Chose: {opt?.shortText}</div>

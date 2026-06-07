@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ArrowRight, Anchor } from 'lucide-react';
-import type { View, StudentDecision, Scores } from '../data/types';
+import type { View, StudentDecision, Scores, ReadingLevel } from '../data/types';
 import { decisionNodes } from '../data/decisions';
 import { getSessionById, saveResult, computeScores, extractMisconceptions } from '../data/store';
 import ScoreBar from '../components/ScoreBar';
@@ -77,6 +77,8 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
 
   // DECIDE
   if (phase === 'decide') {
+    const adaptedContext = adaptForReadingLevel(node.historicalContext, session.readingLevel);
+    const adaptedPrompt = adaptForReadingLevel(node.prompt, session.readingLevel);
     return (
       <div className="min-h-screen bg-navy-50">
         <header className="bg-white border-b border-navy-100 sticky top-0 z-10">
@@ -93,8 +95,16 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
 
         <main className="max-w-3xl mx-auto px-6 py-6">
           <div className="card mb-4">
-            <p className="text-navy-600 text-sm leading-relaxed mb-4">{node.historicalContext}</p>
-            <h2 className="text-lg font-bold text-navy-800">{node.prompt}</h2>
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <span className="text-xs font-semibold uppercase tracking-wide text-navy-500">
+                Reading level: {readingLevelLabel(session.readingLevel)}
+              </span>
+              <span className="text-xs font-semibold uppercase tracking-wide text-navy-500">
+                Standard: {session.standard}
+              </span>
+            </div>
+            <p className="text-navy-600 text-sm leading-relaxed mb-4">{adaptedContext}</p>
+            <h2 className="text-lg font-bold text-navy-800">{adaptedPrompt}</h2>
           </div>
 
           <div className="space-y-3 mb-6">
@@ -109,7 +119,9 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
                 }`}
               >
                 <span className="font-semibold text-navy-800">{opt.shortText}</span>
-                <span className="block text-sm text-navy-500 mt-1">{opt.text}</span>
+                <span className="block text-sm text-navy-500 mt-1">
+                  {adaptForReadingLevel(opt.text, session.readingLevel)}
+                </span>
               </button>
             ))}
           </div>
@@ -146,9 +158,10 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
     if (!chosenOpt) return null;
 
     const hasMisconception = !!chosenOpt.misconceptionTag;
-    const coachingText = hasMisconception
+    const baseCoachingText = hasMisconception
       ? chosenOpt.coachingMisconception ?? chosenOpt.coachingCorrect
       : chosenOpt.coachingCorrect;
+    const coachingText = adaptForReadingLevel(baseCoachingText, session.readingLevel);
 
     return (
       <div className="min-h-screen bg-navy-50">
@@ -244,4 +257,24 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
       onNavigate({ kind: 'student-debrief', sessionId, studentId });
     }
   }
+}
+
+function adaptForReadingLevel(text: string, level: ReadingLevel): string {
+  const sentences = text.split(/(?<=[.!?])\s+/).filter(Boolean);
+
+  if (level === 'below') {
+    return sentences.slice(0, 2).join(' ');
+  }
+
+  if (level === 'above') {
+    return `${text} Consider the long-term cause-and-effect impact of this choice.`;
+  }
+
+  return text;
+}
+
+function readingLevelLabel(level: ReadingLevel): string {
+  if (level === 'below') return 'Below grade 4';
+  if (level === 'above') return 'Above grade 4';
+  return 'On grade 4';
 }

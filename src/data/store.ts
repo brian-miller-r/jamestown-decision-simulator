@@ -85,5 +85,5 @@ export function extractMisconceptions(decisions: StudentResult['decisions'], all
     const option = node?.options.find(o => o.id === decision.optionId);
     if (option?.misconceptionTag) tags.push(option.misconceptionTag);
   }
-  return tags;
+  return Array.from(new Set(tags));
 }
