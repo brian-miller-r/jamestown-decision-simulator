@@ -1,4 +1,4 @@
-import { Ship, GraduationCap, Users, BarChart3 } from 'lucide-react';
+import { Ship, BarChart3 } from 'lucide-react';
 import type { View } from '../data/types';
 import { DEMO_SESSION_ID } from '../data/seed';
 
@@ -30,49 +30,90 @@ export default function HomeView({ onNavigate }: { onNavigate: (v: View) => void
             A 7-minute branching simulation where students make real Jamestown decisions
             and teachers instantly see misconception insights for SOL-aligned reteaching.
           </p>
+          <div className="mt-8 flex flex-col items-center gap-3">
+            <button
+              onClick={() => onNavigate({ kind: 'teacher-dashboard', sessionId: DEMO_SESSION_ID })}
+              className="btn-primary bg-amber-500 hover:bg-amber-600 text-navy-900 px-10 py-4 text-base shadow-xl"
+            >
+              Run 90-Second Live Demo
+            </button>
+            <p className="text-xs text-navy-200">
+              Preloaded class data • No setup needed
+            </p>
+          </div>
         </div>
       </header>
 
       {/* Cards */}
-      <main className="flex-1 flex items-start justify-center px-6 py-12">
-        <div className="max-w-3xl w-full grid md:grid-cols-2 gap-6">
-          <button
-            onClick={() => onNavigate({ kind: 'teacher-setup' })}
-            className="card text-left hover:shadow-xl hover:border-navy-300 transition-all duration-200 group cursor-pointer"
-          >
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-lg bg-navy-100 flex items-center justify-center group-hover:bg-navy-200 transition-colors">
-                <GraduationCap className="w-5 h-5 text-navy-700" />
+      <main className="flex-1 flex items-stretch justify-center px-6 py-10">
+        <div className="max-w-6xl w-full">
+          <div className="grid md:grid-cols-2 gap-8 items-stretch">
+            <div className="card p-8 md:p-10 min-h-[520px] flex flex-col border-2 border-navy-100">
+              <h2 className="text-3xl font-bold text-navy-800 mb-4">I'm a Teacher</h2>
+              <div className="min-h-[88px]">
+                <p className="text-navy-600 text-base leading-relaxed">
+                  Launch a standards-aligned simulation in minutes and leave class with clear,
+                  actionable reteach priorities.
+                </p>
               </div>
-              <h2 className="text-xl font-bold text-navy-800">I'm a Teacher</h2>
+              <div className="mt-6">
+                <button
+                  onClick={() => onNavigate({ kind: 'teacher-setup' })}
+                  className="btn-primary w-full"
+                >
+                  Teacher session
+                </button>
+              </div>
+              <div className="mt-6 overflow-hidden rounded-2xl border border-navy-200 bg-navy-50 p-2">
+                <img
+                  src="/teacher-photo.png"
+                  alt="Teacher preparing students for a Jamestown lesson"
+                  className="w-full h-auto rounded-xl object-contain"
+                />
+              </div>
+              <div className="mt-8 min-h-[172px]">
+                <h3 className="text-xs font-bold uppercase tracking-wide text-navy-500">How teachers are using it</h3>
+                <ul className="mt-3 space-y-2 text-sm text-navy-700 list-disc pl-5">
+                  <li>Whole-class warm-up before Virginia Studies review.</li>
+                  <li>Small-group intervention for misconception-heavy standards.</li>
+                  <li>Data-backed parent conversation examples.</li>
+                </ul>
+              </div>
             </div>
-            <p className="text-navy-600 text-sm leading-relaxed">
-              Create a simulation session, choose your standard focus, and get real-time
-              misconception insights from your students' decisions.
-            </p>
-            <div className="mt-4 text-navy-700 font-semibold text-sm group-hover:text-navy-900">
-              Set up session &rarr;
-            </div>
-          </button>
 
-          <button
-            onClick={() => onNavigate({ kind: 'student-join' })}
-            className="card text-left hover:shadow-xl hover:border-navy-300 transition-all duration-200 group cursor-pointer"
-          >
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-lg bg-navy-100 flex items-center justify-center group-hover:bg-navy-200 transition-colors">
-                <Users className="w-5 h-5 text-navy-700" />
+            <div className="card p-8 md:p-10 min-h-[520px] flex flex-col border-2 border-navy-100">
+              <h2 className="text-3xl font-bold text-navy-800 mb-4">I'm a Student</h2>
+              <div className="min-h-[88px]">
+                <p className="text-navy-600 text-base leading-relaxed">
+                  Step into Jamestown, make decisions, explain your thinking, and get instant coaching
+                  on how your choices affect the colony.
+                </p>
               </div>
-              <h2 className="text-xl font-bold text-navy-800">I'm a Student</h2>
+              <div className="mt-6">
+                <button
+                  onClick={() => onNavigate({ kind: 'student-join' })}
+                  className="btn-primary w-full"
+                >
+                  Join student session
+                </button>
+              </div>
+              <div className="mt-6 overflow-hidden rounded-2xl border border-navy-200 bg-navy-50 p-2">
+                <img
+                  src="/student-photo.png"
+                  alt="Student practicing colonial history reasoning"
+                  className="w-full h-auto rounded-xl object-contain"
+                />
+              </div>
+              <div className="mt-8 min-h-[172px]">
+                <h3 className="text-xs font-bold uppercase tracking-wide text-navy-500">Where students use it</h3>
+                <ul className="mt-3 space-y-2 text-sm text-navy-700 list-disc pl-5">
+                  <li>Center rotation activity during social studies block.</li>
+                  <li>At-home SOL prep with guided reasoning prompts.</li>
+                  <li>Post-lesson reflection and practice before quizzes.</li>
+                </ul>
+              </div>
             </div>
-            <p className="text-navy-600 text-sm leading-relaxed">
-              Enter your session code and step into 1607 Jamestown. Make decisions,
-              explain your thinking, and see how your colony survives.
-            </p>
-            <div className="mt-4 text-navy-700 font-semibold text-sm group-hover:text-navy-900">
-              Join session &rarr;
-            </div>
-          </button>
+          </div>
         </div>
       </main>
 

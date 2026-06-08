@@ -84,3 +84,9 @@ export function seedDemoData() {
   results.push(resultA, resultB);
   localStorage.setItem('jamestown_results', JSON.stringify(results));
 }
+
+export function resetDemoData() {
+  localStorage.removeItem('jamestown_sessions');
+  localStorage.removeItem('jamestown_results');
+  seedDemoData();
+}

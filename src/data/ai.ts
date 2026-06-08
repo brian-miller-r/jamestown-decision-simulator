@@ -74,10 +74,12 @@ const patterns: ReasoningPattern[] = [
 
 export interface ReasoningAnalysis {
   detectedPatterns: string[];
+  evidenceKeywords: string[];
   misconceptionTags: string[];
   primaryCoaching: string;
   secondaryCoaching: string | null;
   confidence: number;
+  confidenceBand: 'High' | 'Medium' | 'Low';
   reasoningQuality: 'surface' | 'moderate' | 'deep';
 }
 
@@ -125,6 +127,7 @@ export function analyzeReasoning(
   let primaryCoaching: string;
   let secondaryCoaching: string | null = null;
   const misconceptionTags: string[] = [];
+  const evidenceKeywords = Array.from(new Set(detected.map(d => d.match)));
 
   // Option-based misconception (always include if present)
   if (hasOptionMisconception) {
@@ -171,13 +174,17 @@ export function analyzeReasoning(
   }
 
   const confidence = detected.length > 0 ? 0.85 : hasOptionMisconception ? 0.7 : 0.6;
+  const confidenceBand: ReasoningAnalysis['confidenceBand'] =
+    confidence >= 0.8 ? 'High' : confidence >= 0.65 ? 'Medium' : 'Low';
 
   return {
     detectedPatterns: detected.map(d => d.pattern.id),
+    evidenceKeywords,
     misconceptionTags,
     primaryCoaching,
     secondaryCoaching,
     confidence,
+    confidenceBand,
     reasoningQuality: quality,
   };
 }

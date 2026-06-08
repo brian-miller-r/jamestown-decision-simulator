@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { ArrowRight, Anchor, Brain } from 'lucide-react';
 import type { View, StudentDecision, Scores, ReadingLevel } from '../data/types';
 import { getDecisionNodes } from '../data/decisions';
@@ -28,14 +28,18 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
   const [aiAnalysis, setAiAnalysis] = useState<ReasoningAnalysis | null>(null);
 
   const session = getSessionById(sessionId);
-  const decisionNodes = session ? getDecisionNodes(session.standard) : [];
+  const standard = session?.standard;
+  const decisionNodes = useMemo(
+    () => (standard ? getDecisionNodes(standard) : []),
+    [standard]
+  );
   const node = decisionNodes[currentIdx];
 
   useEffect(() => {
     if (decisions.length > 0) {
       setRunningScores(computeScores(decisions, decisionNodes));
     }
-  }, [decisions]);
+  }, [decisions, decisionNodes]);
 
   if (!session) {
     return (
@@ -172,6 +176,12 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
             const opt = node.options.find(o => o.id === lastDecision.optionId);
             return !opt?.misconceptionTag && aiAnalysis.detectedPatterns.length > 0;
           })();
+    const confidenceBandStyle =
+      aiAnalysis.confidenceBand === 'High'
+        ? 'bg-emerald-100 text-emerald-700'
+        : aiAnalysis.confidenceBand === 'Medium'
+          ? 'bg-amber-100 text-amber-700'
+          : 'bg-red-100 text-red-700';
 
     return (
       <div className="min-h-screen bg-navy-50">
@@ -198,11 +208,32 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
               }`}>
                 {hasMisconception ? 'Something to Think About' : surfaceCorrect ? 'Right Choice, Deeper Thinking Needed' : 'Great Thinking!'}
               </span>
-              <span className="text-xs text-navy-400 flex items-center gap-1">
-                <Brain className="w-3 h-3" /> AI confidence: {Math.round(aiAnalysis.confidence * 100)}%
+              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${confidenceBandStyle}`}>
+                AI confidence: {aiAnalysis.confidenceBand}
               </span>
             </div>
             <p className="text-navy-700 leading-relaxed">{aiAnalysis.primaryCoaching}</p>
+          </div>
+
+          {/* Explainability cues */}
+          <div className="card">
+            <h3 className="text-sm font-semibold text-navy-700 mb-2">AI noticed these reasoning cues</h3>
+            {aiAnalysis.evidenceKeywords.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {aiAnalysis.evidenceKeywords.map(keyword => (
+                  <span
+                    key={keyword}
+                    className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full font-semibold"
+                  >
+                    {keyword}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-navy-500">
+                No high-risk misconception cues detected in your wording.
+              </p>
+            )}
           </div>
 
           {/* Secondary coaching if AI found multiple patterns */}

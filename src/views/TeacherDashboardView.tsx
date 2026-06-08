@@ -1,8 +1,9 @@
-import { ArrowLeft, AlertTriangle, BookOpen, Users, ArrowRight, TrendingUp, Brain, Sparkles } from 'lucide-react';
+import { ArrowLeft, AlertTriangle, BookOpen, Users, ArrowRight, TrendingUp, Brain, Sparkles, RotateCcw } from 'lucide-react';
 import type { View, Scores, StudentResult, DecisionNode } from '../data/types';
 import { getSessionById, getResults } from '../data/store';
 import { getDecisionNodes, misconceptionMeta } from '../data/decisions';
 import { generateTeacherInsights, generateSmartComparison } from '../data/ai';
+import { DEMO_SESSION_ID, resetDemoData } from '../data/seed';
 import ScoreBar from '../components/ScoreBar';
 
 interface Props {
@@ -64,6 +65,36 @@ export default function TeacherDashboardView({ sessionId, onNavigate }: Props) {
     ? generateSmartComparison(studentA, studentB)
     : [];
 
+  const reteachPriorities = topMisconceptions
+    .map(([tag, count], index) => {
+      const meta = misconceptionMeta[tag];
+      if (!meta) return null;
+      const studentsNeedingHelp = results
+        .filter(r => r.misconceptionTags.includes(tag))
+        .map(r => r.displayName);
+      return {
+        key: tag,
+        priority: index + 1,
+        count,
+        label: meta.label,
+        studentsNeedingHelp,
+        tenMinutePlan: toTenMinutePlan(meta.reteachAction),
+      };
+    })
+    .filter((value): value is {
+      key: string;
+      priority: number;
+      count: number;
+      label: string;
+      studentsNeedingHelp: string[];
+      tenMinutePlan: string;
+    } => value !== null);
+
+  function handleResetDemo() {
+    resetDemoData();
+    onNavigate({ kind: 'teacher-dashboard', sessionId: DEMO_SESSION_ID });
+  }
+
   return (
     <div className="min-h-screen bg-navy-50">
       <header className="bg-navy-900 text-white">
@@ -81,17 +112,56 @@ export default function TeacherDashboardView({ sessionId, onNavigate }: Props) {
                 <Brain className="w-6 h-6 text-amber-400" /> AI Insights Dashboard
               </h1>
             </div>
-            <button
-              onClick={() => onNavigate({ kind: 'home' })}
-              className="text-navy-300 hover:text-white transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleResetDemo}
+                className="text-xs font-semibold bg-amber-500 hover:bg-amber-400 text-navy-900 px-3 py-2 rounded-lg flex items-center gap-2 transition-colors"
+              >
+                <RotateCcw className="w-4 h-4" />
+                Reset Demo Data
+              </button>
+              <button
+                onClick={() => onNavigate({ kind: 'home' })}
+                className="text-navy-300 hover:text-white transition-colors"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+            </div>
           </div>
         </div>
       </header>
 
       <main className="max-w-5xl mx-auto px-6 py-8 space-y-8">
+        {/* Teach Tomorrow Priorities */}
+        {reteachPriorities.length > 0 && (
+          <div className="card border-2 border-blue-200 bg-gradient-to-br from-white to-blue-50/40">
+            <div className="flex items-center gap-2 mb-4">
+              <BookOpen className="w-5 h-5 text-blue-600" />
+              <h2 className="text-lg font-bold text-navy-800">Top 3 Reteach Priorities (Teach Tomorrow)</h2>
+            </div>
+            <div className="space-y-4">
+              {reteachPriorities.map(priority => (
+                <div key={priority.key} className="rounded-lg border border-blue-200 bg-white p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-sm font-bold text-navy-800">
+                      Priority {priority.priority}: {priority.label}
+                    </h3>
+                    <span className="text-xs font-semibold text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full">
+                      {priority.count} student{priority.count !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  <p className="text-sm text-navy-600 mb-2">
+                    <span className="font-semibold">Who needs help:</span>{' '}
+                    {priority.studentsNeedingHelp.join(', ')}
+                  </p>
+                  <p className="text-sm text-navy-700">
+                    <span className="font-semibold">10-minute activity:</span> {priority.tenMinutePlan}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         {/* Class Overview */}
         <div className="grid md:grid-cols-2 gap-6">
           <div className="card">
@@ -281,6 +351,10 @@ export default function TeacherDashboardView({ sessionId, onNavigate }: Props) {
       </main>
     </div>
   );
+}
+
+function toTenMinutePlan(reteachAction: string): string {
+  return `2 min launch prompt, 6 min guided activity, 2 min exit ticket: ${reteachAction}`;
 }
 
 function StudentCard({ result, highlight, decisionNodes }: { result: StudentResult; highlight: string; decisionNodes: DecisionNode[] }) {
