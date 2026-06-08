@@ -5,18 +5,28 @@ import { DEMO_SESSION_ID } from '../data/seed';
 export default function HomeView({ onNavigate }: { onNavigate: (v: View) => void }) {
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Hero */}
-      <header className="bg-navy-900 text-white">
-        <div className="max-w-4xl mx-auto px-6 py-16 text-center">
+      {/* Hero with illustration */}
+      <header className="relative bg-navy-900 text-white overflow-hidden">
+        {/* Background image */}
+        <div className="absolute inset-0 opacity-40">
+          <img
+            src="/Screenshot_2026-06-07_at_8.44.59_PM.png"
+            alt="Jamestown settlement on the James River"
+            className="w-full h-full object-cover"
+          />
+        </div>
+
+        {/* Content overlay */}
+        <div className="relative max-w-4xl mx-auto px-6 py-16 text-center">
           <div className="flex justify-center mb-6">
-            <div className="w-16 h-16 rounded-full bg-navy-700 flex items-center justify-center">
+            <div className="w-16 h-16 rounded-full bg-navy-700 flex items-center justify-center shadow-lg">
               <Ship className="w-8 h-8 text-amber-400" />
             </div>
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4 drop-shadow-lg">
             Jamestown Decision Simulator
           </h1>
-          <p className="text-navy-200 text-lg max-w-2xl mx-auto leading-relaxed">
+          <p className="text-navy-100 text-lg max-w-2xl mx-auto leading-relaxed drop-shadow-md">
             A 7-minute branching simulation where students make real Jamestown decisions
             and teachers instantly see misconception insights for SOL-aligned reteaching.
           </p>
