@@ -46,6 +46,7 @@ export interface StudentResult {
   id: string;
   sessionId: string;
   displayName: string;
+  standard?: StandardFocus; // which standard was this for?
   decisions: StudentDecision[];
   finalScores: Scores;
   misconceptionTags: string[];

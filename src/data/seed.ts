@@ -1,6 +1,6 @@
 import type { Session, StudentResult } from './types';
 import { getSessions, getResults } from './store';
-import { decisionNodes } from './decisions';
+import { getDecisionNodes } from './decisions';
 import { computeScores, extractMisconceptions } from './store';
 import { analyzeReasoning } from './ai';
 
@@ -37,7 +37,8 @@ const demoStudentB: StudentResult = {
   completedAt: Date.now() - 10000,
 };
 
-function computeResultWithAI(r: StudentResult): StudentResult {
+function computeResultWithAI(r: StudentResult, standard: 'VS.3' | 'VS.4'): StudentResult {
+  const decisionNodes = getDecisionNodes(standard);
   const scores = computeScores(r.decisions, decisionNodes);
   const optionTags = extractMisconceptions(r.decisions, decisionNodes);
 
@@ -56,6 +57,7 @@ function computeResultWithAI(r: StudentResult): StudentResult {
 
   return {
     ...r,
+    standard,
     finalScores: scores,
     misconceptionTags: mergedTags,
   };
@@ -77,8 +79,8 @@ export function seedDemoData() {
   localStorage.setItem('jamestown_sessions', JSON.stringify(sessions));
 
   const results = getResults();
-  const resultA = computeResultWithAI(demoStudentA);
-  const resultB = computeResultWithAI(demoStudentB);
+  const resultA = computeResultWithAI(demoStudentA, 'VS.3');
+  const resultB = computeResultWithAI(demoStudentB, 'VS.3');
   results.push(resultA, resultB);
   localStorage.setItem('jamestown_results', JSON.stringify(results));
 }

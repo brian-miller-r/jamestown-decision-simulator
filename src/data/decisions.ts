@@ -1,6 +1,8 @@
-import type { DecisionNode } from './types';
+import type { DecisionNode, StandardFocus } from './types';
 
-export const decisionNodes: DecisionNode[] = [
+// ─── VS.3: FIRST PERMANENT SETTLEMENT (1607 Jamestown founding) ───
+
+const vs3Decisions: DecisionNode[] = [
   {
     id: 'location',
     order: 1,
@@ -144,6 +146,151 @@ export const decisionNodes: DecisionNode[] = [
   },
 ];
 
+// ─── VS.4: COLONIAL VIRGINIA (broader colonial period, later developments) ───
+
+const vs4Decisions: DecisionNode[] = [
+  {
+    id: 'location',
+    order: 1,
+    title: 'Expanding Colonial Settlement',
+    historicalContext:
+      'By the 1620s, Virginia was growing. The Powhatan Confederacy was powerful but facing pressure. English colonists wanted to expand beyond the original settlement. Should they push inland, spread along the coast, or carefully negotiate borders with the Powhatan?',
+    prompt: 'How should colonial Virginia expand?',
+    options: [
+      {
+        id: 'rapid-inland',
+        shortText: 'Expand rapidly inland',
+        text: 'Push aggressively into Powhatan territory to establish new plantations and farms. More land means more wealth.',
+        scores: { survival: 10, economy: 25, diplomacy: -40, governance: 5 },
+        misconceptionTag: 'expansion-entitlement',
+        coachingCorrect: 'Rapid expansion was tempting, but it directly caused the 1622 Powhatan uprising where hundreds of colonists died. Aggressive land-taking destroyed the fragile peace.',
+        coachingMisconception: 'Land seizure seemed profitable short-term, but triggered devastating warfare. The colonists who survived were those who negotiated carefully.',
+      },
+      {
+        id: 'negotiate-borders',
+        shortText: 'Negotiate clear borders',
+        text: 'Work with Powhatan leaders to agree on colonial territory. Respect their lands and trade instead of fight.',
+        scores: { survival: 35, economy: 20, diplomacy: 35, governance: 20 },
+        coachingCorrect: 'This was the path chosen under better leaders. Negotiated borders gave colonists room to grow while maintaining peace — until aggressive expansion resumed later.',
+        coachingMisconception: 'Negotiation seemed weak to some colonists, but it allowed both cultures to coexist and trade. Peace was more profitable than warfare.',
+      },
+      {
+        id: 'coastal-trading-posts',
+        shortText: 'Establish coastal trading posts',
+        text: 'Build small trading stations along the coast to trade with Powhatan, not conquer their land.',
+        scores: { survival: 25, economy: 30, diplomacy: 20, governance: 15 },
+        coachingCorrect: 'Trading posts created wealth without warfare. But colonists were often impatient and pushed for more land, breaking the peace agreements.',
+        coachingMisconception: 'Trading seemed less profitable than plantations, but it was more reliable and didn\'t create enemies who could destroy the colony overnight.',
+      },
+    ],
+  },
+  {
+    id: 'economy',
+    order: 2,
+    title: 'Economic Development Strategy',
+    historicalContext:
+      'By the 1610s-1620s, Virginia faced a question: what would make the colony profitable for investors? The Virginia Company needed returns. Tobacco emerged as a cash crop. But should colonists focus on tobacco exports, food self-sufficiency, or trade goods like timber and furs?',
+    prompt: 'What should drive the colonial economy?',
+    options: [
+      {
+        id: 'tobacco-plantation',
+        shortText: 'Tobacco plantations (cash crop)',
+        text: 'Grow tobacco for export to Europe. It is profitable and investors love it. Land and enslaved labor will make us rich.',
+        scores: { survival: 15, economy: 40, diplomacy: -10, governance: -5 },
+        coachingCorrect: 'Tobacco made colonists rich — but it also led to massive demand for labor, which drove the slave trade. This choice shaped all of future America.',
+        coachingMisconception: 'Tobacco was wildly profitable, but it depended on slave labor and made colonists ignore food security. When harvests failed, they starved.',
+      },
+      {
+        id: 'diverse-exports',
+        shortText: 'Diverse exports (timber, furs, etc.)',
+        text: 'Export timber, furs, and naval supplies alongside some tobacco. Diversification is safer than betting on one crop.',
+        scores: { survival: 30, economy: 25, diplomacy: 15, governance: 20 },
+        coachingCorrect: 'Diversification was sensible but less profitable than tobacco. Many colonists abandoned it for tobacco\'s quick wealth — a short-term choice with long-term consequences.',
+        coachingMisconception: 'Diverse exports seemed boring compared to tobacco fortunes. But colonies that kept diversity were more resilient when prices crashed.',
+      },
+      {
+        id: 'self-sufficient-farming',
+        shortText: 'Self-sufficient local farming',
+        text: 'Focus on feeding ourselves — corn, beans, squash, local livestock. Export only surplus. Security over wealth.',
+        scores: { survival: 40, economy: 10, diplomacy: 20, governance: 30 },
+        coachingCorrect: 'Self-sufficiency was smart and prevented starvation. But it made the Virginia Company angry — they invested expecting profits, not survival.',
+        coachingMisconception: 'Steady farming seemed boring and unprofitable. But colonies with food security survived economic crashes; those dependent on single crops did not.',
+      },
+    ],
+  },
+  {
+    id: 'labor',
+    order: 3,
+    title: 'Labor and Society Structure',
+    historicalContext:
+      'As Virginia grew in the 1620s-1640s, colonists needed workers for plantations. Some arrived as indentured servants from England. But who would work the land? Should colonists rely on indentured servants, try to enslave Native Americans, or develop a permanent enslaved African population?',
+    prompt: 'How should Virginia get labor for plantations?',
+    options: [
+      {
+        id: 'indentured-servants',
+        shortText: 'Indentured servants from England',
+        text: 'Bring English men and women as indentured servants. They work for 5-7 years, then are freed with land grants.',
+        scores: { survival: 25, economy: 20, diplomacy: 10, governance: 25 },
+        coachingCorrect: 'This was Virginia\'s main strategy early on. It worked but created a problem: freed servants wanted land, but there wasn\'t enough. This led to Bacon\'s Rebellion in 1676.',
+        coachingMisconception: 'Indentured servitude seemed temporary and fair. But freed servants with nothing created a restless underclass of poor colonists angry at the wealthy planters.',
+      },
+      {
+        id: 'native-american-slavery',
+        shortText: 'Enslave Native Americans',
+        text: 'Force Powhatan people and other Native Americans to work the plantations. They know the land and can be forced to labor.',
+        scores: { survival: 5, economy: 15, diplomacy: -50, governance: -20 },
+        misconceptionTag: 'native-slavery-myth',
+        coachingCorrect: 'Some colonists tried this, but it backfired. Native Americans resisted, escaped, or died from European diseases. The Powhatan fought back with the 1622 uprising.',
+        coachingMisconception: 'Enslaving the Powhatan seemed logical, but they outnumbered the colonists, knew the land, and rebelled fiercely. This strategy created enemies, not workers.',
+      },
+      {
+        id: 'african-slavery',
+        shortText: 'Import enslaved Africans',
+        text: 'Bring enslaved Africans from Africa via slave traders. They can work forever — no freedom dues, no land grants.',
+        scores: { survival: 20, economy: 35, diplomacy: -5, governance: -10 },
+        misconceptionTag: 'slavery-inevitability',
+        coachingCorrect: 'This tragic choice was made in the 1640s-1660s. It made Virginia very wealthy but created a racial slave system that lasted until 1865 and shaped American inequality forever.',
+        coachingMisconception: 'Slavery seemed like just another labor system. It became the foundation of American racism and the worst atrocity in U.S. history.',
+      },
+    ],
+  },
+  {
+    id: 'governance',
+    order: 4,
+    title: 'Colonial Government and Rights',
+    historicalContext:
+      'By the 1630s-1640s, Virginia had a House of Burgesses (colonial assembly), but power was held by wealthy planters. Poor colonists, women, and enslaved people had no voice. How should colonial government develop? More democracy for colonists, or maintain planter control?',
+    prompt: 'How should power be distributed in Virginia?',
+    options: [
+      {
+        id: 'planter-oligarchy',
+        shortText: 'Wealthy planters rule',
+        text: 'Keep power in the hands of wealthy tobacco planters. They have invested the most and deserve to lead. Democracy is inefficient.',
+        scores: { survival: 15, economy: 30, diplomacy: 5, governance: 10 },
+        misconceptionTag: 'oligarchy-stability',
+        coachingCorrect: 'Planter rule made Virginia wealthy but created deep inequality. Poor colonists and enslaved people had zero representation. This system lasted until the Civil War.',
+        coachingMisconception: 'Planter oligarchy seemed stable and efficient. But it bred resentment (Bacon\'s Rebellion 1676) and eventually led to slavery-based oppression.',
+      },
+      {
+        id: 'property-based-voting',
+        shortText: 'Property owners vote',
+        text: 'All men with property can vote and hold office. This protects colonial interests while allowing some participation.',
+        scores: { survival: 28, economy: 25, diplomacy: 10, governance: 28 },
+        coachingCorrect: 'This was a compromise that allowed some democracy for the propertied. But it excluded servants, enslaved people, and women — most of the population had no rights.',
+        coachingMisconception: 'Property-based voting seemed fair — everyone with "skin in the game" has a say. But it concentrated power and excluded the poor and enslaved.',
+      },
+      {
+        id: 'broader-democracy',
+        shortText: 'Broader male participation',
+        text: 'Let all free men vote, not just the wealthy. This spreads power and loyalty across more colonists.',
+        scores: { survival: 32, economy: 15, diplomacy: 15, governance: 35 },
+        coachingCorrect: 'Broader democracy would have reduced inequality and prevented Bacon\'s Rebellion. But wealthy planters resisted it — they preferred concentrating power and wealth.',
+        coachingMisconception: 'Broader democracy seemed dangerous to the wealthy. But it might have prevented the cycle of rebellion and oppression that defined colonial Virginia.',
+      },
+    ],
+  },
+];
+
 export const misconceptionMeta: Record<string, { label: string; description: string; reteachAction: string }> = {
   'inland-safety': {
     label: 'Inland = Safe',
@@ -170,4 +317,32 @@ export const misconceptionMeta: Record<string, { label: string; description: str
     description: 'Assumes Virginia Company rules will fit local conditions, not understanding the distance problem.',
     reteachAction: 'Role-play: students in England write rules for colonists without knowing local conditions. Then swap and discuss gaps.',
   },
+  'expansion-entitlement': {
+    label: 'Colonial Expansion Entitlement',
+    description: 'Believes colonists have the right to seize Native American land for profit without consequences.',
+    reteachAction: 'Read primary sources from the 1622 uprising. Map the timeline of land seizures that triggered it.',
+  },
+  'native-slavery-myth': {
+    label: 'Native Americans as Labor Source',
+    description: 'Mistakenly believes Native Americans could be enslaved like Africans, ignoring their resistance and disease.',
+    reteachAction: 'Compare labor systems: indentured servitude, Native American enslavement attempts, and African slavery. Why did each emerge or fail?',
+  },
+  'slavery-inevitability': {
+    label: 'Slavery as Inevitable',
+    description: 'Assumes slavery was always the obvious choice, not understanding it was a deliberate choice made in the 1600s.',
+    reteachAction: 'Historical decision point: in 1640, Virginia had multiple labor options. Trace how slavery became the choice and its consequences.',
+  },
+  'oligarchy-stability': {
+    label: 'Oligarchy as Stable',
+    description: 'Believes concentrated planter power was stable and efficient, ignoring inequality and rebellion.',
+    reteachAction: 'Bacon\'s Rebellion analysis: what grievances led poor colonists to rebel? What would have changed if they had power?',
+  },
 };
+
+// ─── Export decision nodes by standard ───
+
+export function getDecisionNodes(standard: StandardFocus): DecisionNode[] {
+  return standard === 'VS.3' ? vs3Decisions : vs4Decisions;
+}
+
+export const allDecisionNodes = [...vs3Decisions, ...vs4Decisions];

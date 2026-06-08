@@ -1,7 +1,7 @@
 import { ArrowLeft, AlertTriangle, BookOpen, Users, ArrowRight, TrendingUp, Brain, Sparkles } from 'lucide-react';
-import type { View, Scores, StudentResult } from '../data/types';
+import type { View, Scores, StudentResult, DecisionNode } from '../data/types';
 import { getSessionById, getResults } from '../data/store';
-import { decisionNodes, misconceptionMeta } from '../data/decisions';
+import { getDecisionNodes, misconceptionMeta } from '../data/decisions';
 import { generateTeacherInsights, generateSmartComparison } from '../data/ai';
 import ScoreBar from '../components/ScoreBar';
 
@@ -52,7 +52,8 @@ export default function TeacherDashboardView({ sessionId, onNavigate }: Props) {
   }
 
   // AI-powered insights
-  const aiInsights = generateTeacherInsights(results, decisionNodes);
+  const allNodes = results.length > 0 ? getDecisionNodes(results[0].standard || 'VS.3') : [];
+  const aiInsights = generateTeacherInsights(results, allNodes);
 
   // Two students for comparison
   const studentA = results[0];
@@ -218,8 +219,8 @@ export default function TeacherDashboardView({ sessionId, onNavigate }: Props) {
               </span>
             </div>
             <div className="grid md:grid-cols-2 gap-6">
-              <StudentCard result={studentA} highlight="emerald" />
-              <StudentCard result={studentB} highlight="amber" />
+              <StudentCard result={studentA} highlight="emerald" decisionNodes={allNodes} />
+              <StudentCard result={studentB} highlight="amber" decisionNodes={allNodes} />
             </div>
 
             {/* AI Smart Comparison */}
@@ -282,7 +283,7 @@ export default function TeacherDashboardView({ sessionId, onNavigate }: Props) {
   );
 }
 
-function StudentCard({ result, highlight }: { result: StudentResult; highlight: string }) {
+function StudentCard({ result, highlight, decisionNodes }: { result: StudentResult; highlight: string; decisionNodes: DecisionNode[] }) {
   const borderColor = highlight === 'emerald' ? 'border-t-emerald-500' : 'border-t-amber-500';
 
   // Analyze reasoning quality for each decision

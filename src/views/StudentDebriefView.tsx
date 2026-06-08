@@ -1,7 +1,7 @@
 import { ArrowRight, Trophy, Target, Lightbulb, Brain, BookOpen } from 'lucide-react';
 import type { View } from '../data/types';
 import { getResult } from '../data/store';
-import { decisionNodes, misconceptionMeta } from '../data/decisions';
+import { getDecisionNodes, misconceptionMeta } from '../data/decisions';
 import { generateDebrief } from '../data/ai';
 import ScoreBar from '../components/ScoreBar';
 
@@ -25,6 +25,7 @@ export default function StudentDebriefView({ sessionId, studentId, onNavigate }:
     );
   }
 
+  const decisionNodes = getDecisionNodes(result.standard || 'VS.3');
   const ai = generateDebrief(result, decisionNodes);
 
   return (

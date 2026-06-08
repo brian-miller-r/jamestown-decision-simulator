@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ArrowRight, Anchor, Brain } from 'lucide-react';
 import type { View, StudentDecision, Scores, ReadingLevel } from '../data/types';
-import { decisionNodes } from '../data/decisions';
+import { getDecisionNodes } from '../data/decisions';
 import { getSessionById, saveResult, computeScores, extractMisconceptions } from '../data/store';
 import { analyzeReasoning, type ReasoningAnalysis } from '../data/ai';
 import ScoreBar from '../components/ScoreBar';
@@ -28,6 +28,7 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
   const [aiAnalysis, setAiAnalysis] = useState<ReasoningAnalysis | null>(null);
 
   const session = getSessionById(sessionId);
+  const decisionNodes = session ? getDecisionNodes(session.standard) : [];
   const node = decisionNodes[currentIdx];
 
   useEffect(() => {
@@ -275,6 +276,7 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
       id: studentId,
       sessionId,
       displayName: studentName,
+      standard: session!.standard,
       decisions: updatedDecisions,
       finalScores: scores,
       misconceptionTags: mergedTags,
@@ -306,6 +308,7 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
         id: studentId,
         sessionId,
         displayName: studentName,
+        standard: session!.standard,
         decisions,
         finalScores,
         misconceptionTags: mergedTags,
