@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, BookOpen, Sparkles } from 'lucide-react';
+import { ArrowLeft, BookOpen, Sparkles, ChevronDown, Lightbulb } from 'lucide-react';
 import type { View, StandardFocus, ReadingLevel } from '../data/types';
 import { createSession, getSessionById } from '../data/store';
 
@@ -7,6 +7,8 @@ export default function TeacherSetupView({ onNavigate }: { onNavigate: (v: View)
   const [standard, setStandard] = useState<StandardFocus>('VS.3');
   const [readingLevel, setReadingLevel] = useState<ReadingLevel>('on');
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [expandedStandard, setExpandedStandard] = useState(true);
+  const [expandedReadingLevel, setExpandedReadingLevel] = useState(false);
 
   function handleCreate() {
     const session = createSession(standard, readingLevel);
@@ -53,22 +55,26 @@ export default function TeacherSetupView({ onNavigate }: { onNavigate: (v: View)
         </div>
       </header>
 
-      <main className="max-w-xl mx-auto px-6 py-8">
-        <div className="card space-y-6">
+      <main className="max-w-2xl mx-auto px-6 py-8">
+        <div className="card space-y-8">
           <div className="flex items-center gap-2 text-navy-700">
             <BookOpen className="w-5 h-5" />
             <h2 className="font-semibold">Session Settings</h2>
           </div>
 
+          {/* Standard Focus Section */}
           <div>
-            <label className="block text-sm font-semibold text-navy-700 mb-2">
+            <label className="block text-sm font-semibold text-navy-700 mb-3">
               Standard Focus
             </label>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3 mb-4">
               {(['VS.3', 'VS.4'] as StandardFocus[]).map(s => (
                 <button
                   key={s}
-                  onClick={() => setStandard(s)}
+                  onClick={() => {
+                    setStandard(s);
+                    setExpandedStandard(true);
+                  }}
                   className={`p-4 rounded-lg border-2 text-left transition-all ${
                     standard === s
                       ? 'border-navy-700 bg-navy-50 text-navy-900'
@@ -82,13 +88,70 @@ export default function TeacherSetupView({ onNavigate }: { onNavigate: (v: View)
                 </button>
               ))}
             </div>
+
+            {/* Standard Info Panel */}
+            <div className={`bg-gradient-to-r from-blue-50 to-blue-25 border border-blue-200 rounded-lg overflow-hidden transition-all duration-300 ${expandedStandard ? 'opacity-100' : 'opacity-0 hidden'}`}>
+              <button
+                onClick={() => setExpandedStandard(!expandedStandard)}
+                className="w-full flex items-center justify-between p-4 hover:bg-blue-100/50 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <Lightbulb className="w-5 h-5 text-blue-600" />
+                  <span className="font-semibold text-navy-800">About this standard</span>
+                </div>
+                <ChevronDown className={`w-5 h-5 text-blue-600 transition-transform ${expandedStandard ? 'rotate-180' : ''}`} />
+              </button>
+
+              {expandedStandard && (
+                <div className="px-4 pb-4 border-t border-blue-200 space-y-3 text-sm">
+                  {standard === 'VS.3' ? (
+                    <>
+                      <div>
+                        <h4 className="font-semibold text-navy-800 mb-1">VS.3: First Permanent Settlement (1607-1608)</h4>
+                        <p className="text-navy-700">
+                          Students make <strong>survival decisions</strong> as the first 104 English settlers arrive in Virginia. Focus: where to build, how to relate to the Powhatan, food production, and leadership in a crisis.
+                        </p>
+                      </div>
+                      <div className="bg-white/60 rounded p-3 space-y-2">
+                        <div className="font-semibold text-navy-800">Decision Points:</div>
+                        <ul className="text-navy-700 space-y-1 ml-4 list-disc">
+                          <li>Choosing a settlement location (inland vs. coastal vs. peninsula)</li>
+                          <li>Managing relations with the Powhatan people</li>
+                          <li>Food production strategies (English crops vs. local methods)</li>
+                          <li>Governance under crisis (company rules vs. strong leader vs. self-governance)</li>
+                        </ul>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div>
+                        <h4 className="font-semibold text-navy-800 mb-1">VS.4: Colonial Virginia (1620s-1640s)</h4>
+                        <p className="text-navy-700">
+                          Students navigate <strong>systemic choices</strong> as Virginia grows: expansion vs. negotiation, cash crops vs. self-sufficiency, indentured servants vs. slavery, and planter oligarchy vs. broader democracy.
+                        </p>
+                      </div>
+                      <div className="bg-white/60 rounded p-3 space-y-2">
+                        <div className="font-semibold text-navy-800">Decision Points:</div>
+                        <ul className="text-navy-700 space-y-1 ml-4 list-disc">
+                          <li>Expansion strategy (rapid inland growth vs. negotiated borders vs. trading posts)</li>
+                          <li>Economic model (tobacco plantations vs. diverse exports vs. self-sufficiency)</li>
+                          <li>Labor systems (indentured servants vs. Native American slavery vs. African slavery)</li>
+                          <li>Political power distribution (planter oligarchy vs. property-based voting vs. broader democracy)</li>
+                        </ul>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
+          {/* Reading Level Section */}
           <div>
-            <label className="block text-sm font-semibold text-navy-700 mb-2">
+            <label className="block text-sm font-semibold text-navy-700 mb-3">
               Reading Level
             </label>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-3 gap-3 mb-4">
               {([
                 { val: 'below' as ReadingLevel, label: 'Below', desc: 'Simpler language' },
                 { val: 'on' as ReadingLevel, label: 'On Level', desc: 'Grade 4 text' },
@@ -96,7 +159,10 @@ export default function TeacherSetupView({ onNavigate }: { onNavigate: (v: View)
               ]).map(r => (
                 <button
                   key={r.val}
-                  onClick={() => setReadingLevel(r.val)}
+                  onClick={() => {
+                    setReadingLevel(r.val);
+                    setExpandedReadingLevel(true);
+                  }}
                   className={`p-3 rounded-lg border-2 text-center transition-all ${
                     readingLevel === r.val
                       ? 'border-navy-700 bg-navy-50 text-navy-900'
@@ -108,6 +174,82 @@ export default function TeacherSetupView({ onNavigate }: { onNavigate: (v: View)
                 </button>
               ))}
             </div>
+
+            {/* Reading Level Info Panel */}
+            {expandedReadingLevel && (
+              <div className="bg-gradient-to-r from-amber-50 to-amber-25 border border-amber-200 rounded-lg overflow-hidden transition-all duration-300">
+                <button
+                  onClick={() => setExpandedReadingLevel(!expandedReadingLevel)}
+                  className="w-full flex items-center justify-between p-4 hover:bg-amber-100/50 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <Lightbulb className="w-5 h-5 text-amber-600" />
+                    <span className="font-semibold text-navy-800">Reading level examples</span>
+                  </div>
+                  <ChevronDown className={`w-5 h-5 text-amber-600 transition-transform ${expandedReadingLevel ? 'rotate-180' : ''}`} />
+                </button>
+
+                <div className="px-4 pb-4 border-t border-amber-200 space-y-4 text-sm">
+                  {readingLevel === 'below' && (
+                    <div className="space-y-3">
+                      <div>
+                        <div className="font-semibold text-navy-800 mb-2">Below Grade Level — Simpler Language</div>
+                        <p className="text-navy-700 bg-white/60 rounded p-3">
+                          "The English settlers came to a new land. They did not know this place. The Powhatan people lived here. Should the settlers ask the Powhatan for help? Or should they try to do it alone?"
+                        </p>
+                      </div>
+                      <div className="bg-white/60 rounded p-3">
+                        <div className="font-semibold text-navy-800 mb-2">Use this level if students:</div>
+                        <ul className="text-navy-700 space-y-1 ml-4 list-disc">
+                          <li>Struggle with multi-clause sentences</li>
+                          <li>Benefit from short, direct statements</li>
+                          <li>Need simplified vocabulary without losing meaning</li>
+                        </ul>
+                      </div>
+                    </div>
+                  )}
+
+                  {readingLevel === 'on' && (
+                    <div className="space-y-3">
+                      <div>
+                        <div className="font-semibold text-navy-800 mb-2">On Grade Level (Grade 4) — Clear, Standard Text</div>
+                        <p className="text-navy-700 bg-white/60 rounded p-3">
+                          "In May 1607, English settlers arrived at the Chesapeake Bay. The Powhatan people had lived there for thousands of years. The settlers needed food and shelter. They could trade with the Powhatan, demand supplies, or try to farm on their own. What would you choose?"
+                        </p>
+                      </div>
+                      <div className="bg-white/60 rounded p-3">
+                        <div className="font-semibold text-navy-800 mb-2">Use this level if students:</div>
+                        <ul className="text-navy-700 space-y-1 ml-4 list-disc">
+                          <li>Read at typical grade 4 fluency</li>
+                          <li>Handle multi-sentence scenarios comfortably</li>
+                          <li>Understand grade-level vocabulary in context</li>
+                        </ul>
+                      </div>
+                    </div>
+                  )}
+
+                  {readingLevel === 'above' && (
+                    <div className="space-y-3">
+                      <div>
+                        <div className="font-semibold text-navy-800 mb-2">Above Grade Level — Rich Detail and Complexity</div>
+                        <p className="text-navy-700 bg-white/60 rounded p-3">
+                          "The Powhatan Confederacy, comprising over thirty tributary tribes, had cultivated sophisticated agricultural practices and maintained complex diplomatic relations for centuries. The English settlers' arrival disrupted these established systems, forcing difficult negotiations about land ownership, resource allocation, and sovereignty. Colonial expansion inevitably raised questions about coexistence versus displacement."
+                        </p>
+                      </div>
+                      <div className="bg-white/60 rounded p-3">
+                        <div className="font-semibold text-navy-800 mb-2">Use this level if students:</div>
+                        <ul className="text-navy-700 space-y-1 ml-4 list-disc">
+                          <li>Read advanced vocabulary (confederacy, tributary, sophistication)</li>
+                          <li>Grasp nuanced cause-and-effect relationships</li>
+                          <li>Engage with longer, more complex sentence structures</li>
+                          <li>Benefit from extended historical context and detail</li>
+                        </ul>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           <button className="btn-primary w-full" onClick={handleCreate}>
