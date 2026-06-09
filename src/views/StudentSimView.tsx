@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
-import { ArrowRight, Anchor, Brain } from 'lucide-react';
+import { ArrowRight, Anchor, Brain, Lightbulb } from 'lucide-react';
 import type { View, StudentDecision, Scores, ReadingLevel } from '../data/types';
 import { getDecisionNodes } from '../data/decisions';
 import { getSessionById, saveResult, computeScores, extractMisconceptions } from '../data/store';
-import { analyzeReasoning, type ReasoningAnalysis } from '../data/ai';
+import { analyzeReasoning, getScaffoldHint, type ReasoningAnalysis, type ScaffoldHint } from '../data/ai';
 import ScoreBar from '../components/ScoreBar';
 import Timer from '../components/Timer';
 
@@ -26,6 +26,8 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
   const [startedAt] = useState(Date.now());
   const [finished, setFinished] = useState(false);
   const [aiAnalysis, setAiAnalysis] = useState<ReasoningAnalysis | null>(null);
+  const [scaffoldHint, setScaffoldHint] = useState<ScaffoldHint | null>(null);
+  const [hintVisible, setHintVisible] = useState(false);
 
   const session = getSessionById(sessionId);
   const standard = session?.standard;
@@ -40,6 +42,33 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
       setRunningScores(computeScores(decisions, decisionNodes));
     }
   }, [decisions, decisionNodes]);
+
+  // Debounced reasoning scaffold — shows a Socratic nudge after student pauses typing
+  useEffect(() => {
+    setHintVisible(false);
+
+    if (!reasoning.trim() || !selectedOption || !node || !session) {
+      setScaffoldHint(null);
+      return;
+    }
+
+    // Immediately dismiss if reasoning is already deep enough
+    const words = reasoning.trim().split(/\s+/).filter(Boolean).length;
+    const lower = reasoning.toLowerCase();
+    const hasConnector = /\b(because|since|therefore|however|but|although|which means|this means|so that)\b/.test(lower);
+    if (words >= 15 && hasConnector) {
+      setScaffoldHint(null);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      const hint = getScaffoldHint(reasoning, node.id, session.standard, session.readingLevel);
+      setScaffoldHint(hint);
+      if (hint) setTimeout(() => setHintVisible(true), 50);
+    }, 1400);
+
+    return () => clearTimeout(timer);
+  }, [reasoning, selectedOption, node, session]);
 
   if (!session) {
     return (
@@ -149,6 +178,27 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
                 className="w-full px-4 py-3 border-2 border-navy-100 rounded-lg focus:border-navy-500 focus:outline-none transition-colors resize-none"
                 rows={3}
               />
+
+              {/* Reasoning scaffold — Socratic nudge, fades in after 1.4s pause */}
+              <div
+                className={`mt-3 flex gap-3 items-start rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 transition-all duration-500 ${
+                  scaffoldHint && hintVisible
+                    ? 'opacity-100 translate-y-0'
+                    : 'opacity-0 -translate-y-1 pointer-events-none'
+                }`}
+                aria-live="polite"
+              >
+                <Lightbulb className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wide text-amber-700 mb-0.5">
+                    {scaffoldHint?.nudgeLevel === 'gentle' ? 'Think about this' : 'Go a little deeper'}
+                  </p>
+                  <p className="text-sm text-amber-900 leading-relaxed">
+                    {scaffoldHint?.question}
+                  </p>
+                </div>
+              </div>
+
               <button
                 className="btn-primary mt-4 flex items-center gap-2"
                 disabled={!reasoning.trim()}

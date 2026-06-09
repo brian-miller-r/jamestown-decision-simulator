@@ -1,4 +1,4 @@
-import type { Scores, StudentDecision, DecisionNode } from './types';
+import type { Scores, StudentDecision, DecisionNode, StandardFocus, ReadingLevel } from './types';
 import { misconceptionMeta } from './decisions';
 
 // ─── Pattern definitions for reasoning analysis ───
@@ -193,6 +193,137 @@ function simplifyText(text: string): string {
   // Take first 2 sentences for below-level readers
   const sentences = text.split(/(?<=[.!?])\s+/);
   return sentences.slice(0, 2).join(' ');
+}
+
+// ─── Reasoning scaffold hint system ───
+
+export interface ScaffoldHint {
+  question: string;
+  nudgeLevel: 'gentle' | 'deeper';
+}
+
+type HintSet = Record<ReadingLevel, string>;
+
+const scaffoldHintBank: Record<string, { gentle: HintSet; deeper: HintSet }> = {
+  'VS.3-location': {
+    gentle: {
+      below: 'Think about: how will ships bring food to you? What is the water like near your spot?',
+      on: 'Consider how supply ships will reach you — and what dangers might be hidden near your chosen location.',
+      above: 'Consider the logistical tension between defensibility and resupply access — what does your settlement depend on to survive the first winter?',
+    },
+    deeper: {
+      below: 'What bad things could happen if your land is swampy or the water is salty?',
+      on: 'What would happen if the water near your settlement is salty or breeds disease? Does your reasoning account for that?',
+      above: 'How does your reasoning weigh water quality, disease risk, and resupply logistics against the defensive advantages you have in mind?',
+    },
+  },
+  'VS.3-powhatan': {
+    gentle: {
+      below: 'Who already knows how to find food here — you or the Powhatan people?',
+      on: 'Think about who has lived here for thousands of years and knows how to grow food in Virginia.',
+      above: 'Consider what the Powhatan already know about Virginia\'s soil, seasons, and resources — and what your approach signals to them about your intentions.',
+    },
+    deeper: {
+      below: 'How do you think the Powhatan would feel about your choice?',
+      on: 'How might the Powhatan respond to your approach? What would they gain or lose?',
+      above: 'How does your approach affect the balance of power and trust between the colonists and the Powhatan Confederacy — and what precedent does it set?',
+    },
+  },
+  'VS.3-food-strategy': {
+    gentle: {
+      below: 'Ships can take a very long time to cross the ocean. What if they are late?',
+      on: 'Ships can take months to cross the Atlantic — and storms or wars can delay them. What is your backup plan?',
+      above: 'Given that transatlantic supply chains were deeply unreliable in 1607, what does your strategy assume about England\'s ability to provision the colony?',
+    },
+    deeper: {
+      below: 'Who has been farming this land for a long time? What do they know that you do not?',
+      on: 'What farming methods have already worked in Virginia\'s climate for thousands of years — and why might they work better than English methods?',
+      above: 'The Powhatan "Three Sisters" polyculture had been optimized for the Chesapeake environment for centuries — how does your reasoning weigh Indigenous agricultural knowledge against English tradition?',
+    },
+  },
+  'VS.3-governance': {
+    gentle: {
+      below: 'People in England are very far away. Can they really know what your colony needs?',
+      on: 'Think about: can someone 3,000 miles away really understand what your colony needs day to day?',
+      above: 'Consider the information problem of distant authority — what can the Virginia Company actually know about Jamestown\'s conditions from across the Atlantic?',
+    },
+    deeper: {
+      below: 'What happens when the rules from home do not match what you need here?',
+      on: 'What happens to the colony when the rules written in England do not fit the problems you actually face in Virginia?',
+      above: 'How does your governance choice balance efficiency with local knowledge? What are the risks of each model when unexpected crises emerge?',
+    },
+  },
+  'VS.4-location': {
+    gentle: {
+      below: 'What will the Powhatan people think if settlers move onto their farms?',
+      on: 'Consider: how would the Powhatan react if settlers move onto land their families have farmed for generations?',
+      above: 'Consider how the Powhatan Confederacy would interpret each expansion approach in terms of territorial sovereignty and existing land rights.',
+    },
+    deeper: {
+      below: 'What happens when two groups want to use the same land?',
+      on: 'What happens to diplomacy and trade when settlers and Powhatan farmers compete for the same fertile land?',
+      above: 'How does your expansion strategy affect the long-term relationship between colony and confederacy — and what does early Virginia history tell us about the consequences of each model?',
+    },
+  },
+  'VS.4-economy': {
+    gentle: {
+      below: 'What if your one crop fails or nobody wants to buy it?',
+      on: 'What happens to a colony that grows only one crop if prices drop, weather turns, or the harvest fails?',
+      above: 'Consider the systemic risks of monoculture dependency — how does tobacco specialization create both economic opportunity and structural vulnerability?',
+    },
+    deeper: {
+      below: 'Can you feed everyone in the colony with just tobacco?',
+      on: 'How does depending entirely on one cash crop affect the colony\'s ability to feed itself during a bad year?',
+      above: 'How does your economic model balance short-term revenue against long-term resilience? What would Virginia\'s tobacco economy look like during a price collapse or crop failure?',
+    },
+  },
+  'VS.4-labor': {
+    gentle: {
+      below: 'What choices do the workers themselves have? Who benefits and who does not?',
+      on: 'Think about what options the workers themselves have in each system. Who benefits, and who is harmed?',
+      above: 'Consider the agency, legal status, and long-term prospects of workers under each system — and what each model implies for the structure of Virginia society.',
+    },
+    deeper: {
+      below: 'What does each labor system mean for Virginia in the future — for everyone?',
+      on: 'What are the long-term consequences for Virginia\'s society and economy of committing to this labor system?',
+      above: 'How does your labor choice reflect and entrench power structures? What social hierarchies does each system create, and how do they compound across generations?',
+    },
+  },
+  'VS.4-governance': {
+    gentle: {
+      below: 'Who gets to help make rules? Who is left out?',
+      on: 'Who gets a say in decisions — and who gets left out — under each option you are considering?',
+      above: 'Consider the distribution of political power and whose interests each governance model actually protects. Who is systematically excluded, and what does that mean for representation?',
+    },
+    deeper: {
+      below: 'How do the rules change who gets to keep their wealth and land?',
+      on: 'How does your governance model shape who controls Virginia\'s wealth, land, and laws over time?',
+      above: 'How does your chosen governance structure reinforce or challenge the existing power of the planter class? What does democratic participation mean when property ownership gates the vote?',
+    },
+  },
+};
+
+export function getScaffoldHint(
+  reasoning: string,
+  nodeId: string,
+  standard: StandardFocus,
+  readingLevel: ReadingLevel,
+): ScaffoldHint | null {
+  const wordCount = reasoning.trim().split(/\s+/).filter(Boolean).length;
+  if (wordCount === 0) return null;
+
+  const lower = reasoning.toLowerCase();
+  const hasConnector = /\b(because|since|therefore|however|but|although|which means|this means|so that)\b/.test(lower);
+
+  // Deep enough reasoning — no nudge needed
+  if (wordCount >= 15 && hasConnector) return null;
+
+  const key = `${standard}-${nodeId}`;
+  const hints = scaffoldHintBank[key];
+  if (!hints) return null;
+
+  const nudgeLevel = wordCount < 8 ? 'gentle' : 'deeper';
+  return { question: hints[nudgeLevel][readingLevel], nudgeLevel };
 }
 
 // ─── AI-powered debrief generation ───
