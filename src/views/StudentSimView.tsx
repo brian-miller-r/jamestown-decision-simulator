@@ -27,7 +27,6 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
   const [finished, setFinished] = useState(false);
   const [aiAnalysis, setAiAnalysis] = useState<ReasoningAnalysis | null>(null);
   const [scaffoldHint, setScaffoldHint] = useState<ScaffoldHint | null>(null);
-  const [hintVisible, setHintVisible] = useState(false);
 
   const session = getSessionById(sessionId);
   const standard = session?.standard;
@@ -43,10 +42,9 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
     }
   }, [decisions, decisionNodes]);
 
-  // Debounced reasoning scaffold — shows a Socratic nudge after student pauses typing
+  // Reasoning scaffold — shows a Socratic nudge while student is typing
+  // Shows after 400ms once they start typing, hides when reasoning is deep enough
   useEffect(() => {
-    setHintVisible(false);
-
     if (!reasoning.trim() || !selectedOption || !node || !session) {
       setScaffoldHint(null);
       return;
@@ -61,11 +59,11 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
       return;
     }
 
+    // Short debounce so hint doesn't flicker on every keystroke
     const timer = setTimeout(() => {
       const hint = getScaffoldHint(reasoning, node.id, session.standard, session.readingLevel);
       setScaffoldHint(hint);
-      if (hint) setTimeout(() => setHintVisible(true), 50);
-    }, 1400);
+    }, 400);
 
     return () => clearTimeout(timer);
   }, [reasoning, selectedOption, node, session]);
@@ -179,25 +177,23 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
                 rows={3}
               />
 
-              {/* Reasoning scaffold — Socratic nudge, fades in after 1.4s pause */}
-              <div
-                className={`mt-3 flex gap-3 items-start rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 transition-all duration-500 ${
-                  scaffoldHint && hintVisible
-                    ? 'opacity-100 translate-y-0'
-                    : 'opacity-0 -translate-y-1 pointer-events-none'
-                }`}
-                aria-live="polite"
-              >
-                <Lightbulb className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-wide text-amber-700 mb-0.5">
-                    {scaffoldHint?.nudgeLevel === 'gentle' ? 'Think about this' : 'Go a little deeper'}
-                  </p>
-                  <p className="text-sm text-amber-900 leading-relaxed">
-                    {scaffoldHint?.question}
-                  </p>
+              {/* Reasoning scaffold — Socratic nudge, appears while reasoning is thin */}
+              {scaffoldHint && (
+                <div
+                  className="mt-3 flex gap-3 items-start rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 animate-fade-in"
+                  aria-live="polite"
+                >
+                  <Lightbulb className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wide text-amber-700 mb-0.5">
+                      {scaffoldHint.nudgeLevel === 'gentle' ? 'Think about this' : 'Go a little deeper'}
+                    </p>
+                    <p className="text-sm text-amber-900 leading-relaxed">
+                      {scaffoldHint.question}
+                    </p>
+                  </div>
                 </div>
-              </div>
+              )}
 
               <button
                 className="btn-primary mt-4 flex items-center gap-2"

@@ -29,4 +29,18 @@
   .score-fill {
     @apply h-full rounded-full transition-all duration-700 ease-out;
   }
+  .animate-fade-in {
+    animation: fadeIn 0.4s ease-out;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
