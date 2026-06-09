@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
-import { ArrowRight, Anchor, Brain, Lightbulb } from 'lucide-react';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { ArrowRight, Anchor, Brain, Lightbulb, Mic } from 'lucide-react';
 import type { View, StudentDecision, Scores, ReadingLevel } from '../data/types';
 import { getDecisionNodes } from '../data/decisions';
 import { getSessionById, saveResult, computeScores, extractMisconceptions } from '../data/store';
@@ -14,7 +14,65 @@ interface Props {
   onNavigate: (v: View) => void;
 }
 
+function mergeDictationText(existing: string, transcript: string): string {
+  const trimmedExisting = existing.trimEnd();
+  const trimmedTranscript = transcript.trim();
+  if (!trimmedTranscript) return existing;
+  if (!trimmedExisting) return trimmedTranscript;
+
+  const needsSpace = /[\s\n]$/.test(existing);
+  return needsSpace ? `${existing}${trimmedTranscript}` : `${existing} ${trimmedTranscript}`;
+}
+
+function errorMessageFromSpeechCode(errorCode?: string): string {
+  switch (errorCode) {
+    case 'not-allowed':
+    case 'service-not-allowed':
+      return 'Microphone permission was denied. Allow microphone access and try again.';
+    case 'audio-capture':
+      return 'No microphone was detected. Check your device audio input.';
+    case 'no-speech':
+      return 'No speech was detected. Hold the mic button and speak clearly.';
+    default:
+      return 'Voice input is unavailable right now. Please try again or type your response.';
+  }
+}
+
 type Phase = 'intro' | 'decide' | 'coach';
+
+interface SpeechRecognitionAlternativeLike {
+  transcript: string;
+}
+
+interface SpeechRecognitionResultLike {
+  isFinal: boolean;
+  length: number;
+  [index: number]: SpeechRecognitionAlternativeLike;
+}
+
+interface SpeechRecognitionEventLike extends Event {
+  resultIndex: number;
+  results: ArrayLike<SpeechRecognitionResultLike>;
+}
+
+interface SpeechRecognitionErrorEventLike extends Event {
+  error?: string;
+}
+
+interface SpeechRecognitionLike {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  maxAlternatives: number;
+  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
+  onerror: ((event: SpeechRecognitionErrorEventLike) => void) | null;
+  onend: ((event: Event) => void) | null;
+  start: () => void;
+  stop: () => void;
+  abort: () => void;
+}
+
+type SpeechRecognitionCtorLike = new () => SpeechRecognitionLike;
 
 export default function StudentSimView({ sessionId, studentId, studentName, onNavigate }: Props) {
   const [phase, setPhase] = useState<Phase>('intro');
@@ -27,6 +85,9 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
   const [finished, setFinished] = useState(false);
   const [aiAnalysis, setAiAnalysis] = useState<ReasoningAnalysis | null>(null);
   const [scaffoldHint, setScaffoldHint] = useState<ScaffoldHint | null>(null);
+  const [isDictating, setIsDictating] = useState(false);
+  const [dictationError, setDictationError] = useState('');
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
 
   const session = getSessionById(sessionId);
   const standard = session?.standard;
@@ -41,6 +102,13 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
       setRunningScores(computeScores(decisions, decisionNodes));
     }
   }, [decisions, decisionNodes]);
+
+  useEffect(() => {
+    return () => {
+      recognitionRef.current?.abort();
+      recognitionRef.current = null;
+    };
+  }, []);
 
   // Reasoning scaffold — shows a Socratic nudge while student is typing
   // Shows after 400ms once they start typing, hides when reasoning is deep enough
@@ -78,6 +146,84 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
 
     return () => clearTimeout(timer);
   }, [reasoning, selectedOption, node, session]);
+
+  function getOrCreateRecognition(): SpeechRecognitionLike | null {
+    if (recognitionRef.current) return recognitionRef.current;
+
+    const speechWindow = window as Window & {
+      SpeechRecognition?: SpeechRecognitionCtorLike;
+      webkitSpeechRecognition?: SpeechRecognitionCtorLike;
+    };
+    const RecognitionCtor = speechWindow.SpeechRecognition ?? speechWindow.webkitSpeechRecognition;
+    if (!RecognitionCtor) return null;
+
+    const recognition = new RecognitionCtor();
+    recognition.lang = 'en-US';
+    recognition.interimResults = true;
+    recognition.continuous = true;
+    recognition.maxAlternatives = 1;
+
+    recognition.onresult = (event: SpeechRecognitionEventLike) => {
+      let transcriptChunk = '';
+      for (let idx = event.resultIndex; idx < event.results.length; idx += 1) {
+        const result = event.results[idx];
+        const transcript = result?.[0]?.transcript?.trim();
+        if (!result?.isFinal || !transcript) continue;
+        transcriptChunk += `${transcript} `;
+      }
+
+      const cleanChunk = transcriptChunk.trim();
+      if (!cleanChunk) return;
+
+      setReasoning(prev => mergeDictationText(prev, cleanChunk));
+    };
+
+    recognition.onerror = (event: SpeechRecognitionErrorEventLike) => {
+      setIsDictating(false);
+      setDictationError(errorMessageFromSpeechCode(event.error));
+    };
+
+    recognition.onend = () => {
+      setIsDictating(false);
+    };
+
+    recognitionRef.current = recognition;
+    return recognition;
+  }
+
+  function handleDictationStart() {
+    setDictationError('');
+    const recognition = getOrCreateRecognition();
+    if (!recognition) {
+      setDictationError('Voice input is not supported on this browser.');
+      return;
+    }
+
+    if (isDictating) return;
+
+    try {
+      recognition.start();
+      setIsDictating(true);
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'InvalidStateError') {
+        return;
+      }
+      setDictationError('Unable to start voice input. Please try again.');
+      setIsDictating(false);
+    }
+  }
+
+  function handleDictationStop() {
+    const recognition = recognitionRef.current;
+    if (!recognition) return;
+    try {
+      recognition.stop();
+    } catch {
+      // no-op
+    } finally {
+      setIsDictating(false);
+    }
+  }
 
   if (!session) {
     return (
@@ -180,13 +326,51 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
               <label className="block text-sm font-semibold text-navy-700 mb-2">
                 Why did you choose this? (1-2 sentences)
               </label>
-              <textarea
-                value={reasoning}
-                onChange={e => setReasoning(e.target.value)}
-                placeholder="The AI coach will analyze your reasoning — be specific about your thinking!"
-                className="w-full px-4 py-3 border-2 border-navy-100 rounded-lg focus:border-navy-500 focus:outline-none transition-colors resize-none"
-                rows={3}
-              />
+              <div className="relative">
+                <textarea
+                  value={reasoning}
+                  onChange={e => {
+                    setReasoning(e.target.value);
+                    if (dictationError) setDictationError('');
+                  }}
+                  placeholder="The AI coach will analyze your reasoning — be specific about your thinking!"
+                  className="w-full px-4 py-3 pr-16 pb-14 border-2 border-navy-100 rounded-lg focus:border-navy-500 focus:outline-none transition-colors resize-none"
+                  rows={3}
+                />
+                <button
+                  type="button"
+                  title="Dictate"
+                  onPointerDown={event => {
+                    event.preventDefault();
+                    handleDictationStart();
+                  }}
+                  onPointerUp={handleDictationStop}
+                  onPointerLeave={handleDictationStop}
+                  onPointerCancel={handleDictationStop}
+                  onContextMenu={event => event.preventDefault()}
+                  className={`group absolute bottom-3 right-3 w-11 h-11 rounded-full border flex items-center justify-center transition-colors ${
+                    isDictating
+                      ? 'border-amber-400 bg-amber-100 text-amber-700'
+                      : 'border-navy-200 bg-white text-navy-600 hover:bg-navy-50'
+                  }`}
+                  aria-label="Dictate"
+                >
+                  <Mic className="w-5 h-5" />
+                  <span className="pointer-events-none absolute -top-10 left-1/2 -translate-x-1/2 rounded-md bg-black px-2 py-1 text-xs font-semibold text-white opacity-0 transition-opacity group-hover:opacity-100">
+                    Dictate
+                  </span>
+                </button>
+              </div>
+              <div className="mt-2 min-h-[20px]">
+                {isDictating && (
+                  <p className="text-xs font-semibold text-amber-700">
+                    Listening… release the mic button to stop.
+                  </p>
+                )}
+                {!isDictating && dictationError && (
+                  <p className="text-xs text-red-600">{dictationError}</p>
+                )}
+              </div>
 
               {/* Reasoning scaffold — Socratic nudge, appears while reasoning is thin */}
               {scaffoldHint && (
@@ -341,6 +525,7 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
   return null;
 
   function handleConfirm() {
+    handleDictationStop();
     if (!selectedOption || !reasoning.trim()) return;
     const newDecision: StudentDecision = {
       nodeId: node.id,

@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, type ChangeEvent } from 'react';
 import { ArrowLeft, BookOpen, Sparkles, ChevronDown, Lightbulb } from 'lucide-react';
 import type { View, StandardFocus, ReadingLevel } from '../data/types';
 import { createSession, getSessionById } from '../data/store';
+import { extractTextFromUpload, suggestReadingLevelFromWriting, type ReadingLevelSuggestion } from '../data/readingLevel';
 
 export default function TeacherSetupView({ onNavigate }: { onNavigate: (v: View) => void }) {
   const [standard, setStandard] = useState<StandardFocus>('VS.3');
@@ -9,10 +10,53 @@ export default function TeacherSetupView({ onNavigate }: { onNavigate: (v: View)
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [expandedStandard, setExpandedStandard] = useState(true);
   const [expandedReadingLevel, setExpandedReadingLevel] = useState(false);
+  const [writingSample, setWritingSample] = useState('');
+  const [sampleFileName, setSampleFileName] = useState('');
+  const [analyzingSample, setAnalyzingSample] = useState(false);
+  const [analysisError, setAnalysisError] = useState('');
+  const [analysis, setAnalysis] = useState<ReadingLevelSuggestion | null>(null);
 
   function handleCreate() {
     const session = createSession(standard, readingLevel);
     setSessionId(session.id);
+  }
+
+  async function handleSampleFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setAnalysisError('');
+    setAnalysis(null);
+    setAnalyzingSample(true);
+    setSampleFileName(file.name);
+
+    try {
+      const extracted = await extractTextFromUpload(file);
+      if (!extracted) {
+        throw new Error('Could not extract readable text from this file.');
+      }
+      setWritingSample(extracted);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to process this file.';
+      setAnalysisError(message);
+    } finally {
+      setAnalyzingSample(false);
+      event.target.value = '';
+    }
+  }
+
+  function handleAnalyzeSample() {
+    const sample = writingSample.trim();
+    if (!sample) {
+      setAnalysisError('Paste or upload writing before running analysis.');
+      return;
+    }
+
+    setAnalysisError('');
+    const suggested = suggestReadingLevelFromWriting(sample);
+    setAnalysis(suggested);
+    setReadingLevel(suggested.suggestedLevel);
+    setExpandedReadingLevel(true);
   }
 
   if (sessionId) {
@@ -145,6 +189,87 @@ export default function TeacherSetupView({ onNavigate }: { onNavigate: (v: View)
               )}
             </div>
           </div>
+          {/* Optional Writing Analysis Section */}
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <Sparkles className="w-5 h-5 text-amber-600" />
+              <h3 className="font-semibold text-navy-800">Optional AI Reading-Level Suggestion</h3>
+            </div>
+            <p className="text-sm text-navy-600 mb-3">
+              Paste a student writing sample or upload a file. Analysis runs in-browser only and is not saved.
+            </p>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-semibold text-navy-700 mb-1">
+                  Upload writing sample (.txt, .docx, .pdf)
+                </label>
+                <input
+                  type="file"
+                  accept=".txt,.docx,.pdf,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                  onChange={handleSampleFileChange}
+                  className="block w-full text-sm text-navy-600 file:mr-3 file:rounded-md file:border-0 file:bg-navy-100 file:px-3 file:py-2 file:font-semibold file:text-navy-800 hover:file:bg-navy-200"
+                />
+                {sampleFileName && (
+                  <p className="text-xs text-navy-500 mt-1">Loaded file: {sampleFileName}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-navy-700 mb-1">
+                  Or paste student writing
+                </label>
+                <textarea
+                  value={writingSample}
+                  onChange={event => {
+                    setWritingSample(event.target.value);
+                    setAnalysis(null);
+                    setAnalysisError('');
+                  }}
+                  rows={6}
+                  placeholder="Paste student writing sample here..."
+                  className="w-full px-4 py-3 border-2 border-navy-100 rounded-lg focus:border-navy-500 focus:outline-none transition-colors resize-y"
+                />
+              </div>
+
+              {analysisError && (
+                <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3">
+                  {analysisError}
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={handleAnalyzeSample}
+                disabled={analyzingSample || !writingSample.trim()}
+                className="btn-secondary"
+              >
+                {analyzingSample ? 'Processing file...' : 'Analyze sample'}
+              </button>
+
+              {analysis && (
+                <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 space-y-2">
+                  <p className="text-sm text-navy-800">
+                    Suggested reading level:{' '}
+                    <span className="font-bold">
+                      {readingLevelLabel(analysis.suggestedLevel)}
+                    </span>
+                  </p>
+                  <p className="text-sm text-navy-700">
+                    Estimated grade {analysis.estimatedGrade.toFixed(1)} &middot; Confidence {analysis.confidence}
+                  </p>
+                  <ul className="text-sm text-navy-700 list-disc pl-5 space-y-1">
+                    {analysis.rationale.map(reason => (
+                      <li key={reason}>{reason}</li>
+                    ))}
+                  </ul>
+                  <p className="text-xs text-navy-500">
+                    Applied to the Reading Level setting below. You can still adjust it manually.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
 
           {/* Reading Level Section */}
           <div>
@@ -259,4 +384,10 @@ export default function TeacherSetupView({ onNavigate }: { onNavigate: (v: View)
       </main>
     </div>
   );
+}
+
+function readingLevelLabel(level: ReadingLevel): string {
+  if (level === 'below') return 'Below grade 4';
+  if (level === 'above') return 'Above grade 4';
+  return 'On grade 4';
 }
