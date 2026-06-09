@@ -310,6 +310,7 @@ export function getScaffoldHint(
   readingLevel: ReadingLevel,
 ): ScaffoldHint | null {
   const wordCount = reasoning.trim().split(/\s+/).filter(Boolean).length;
+  console.log('[getScaffoldHint] called with:', { nodeId, standard, readingLevel, wordCount });
   if (wordCount === 0) return null;
 
   const lower = reasoning.toLowerCase();
@@ -319,11 +320,17 @@ export function getScaffoldHint(
   if (wordCount >= 15 && hasConnector) return null;
 
   const key = `${standard}-${nodeId}`;
+  console.log('[getScaffoldHint] looking up key:', key);
   const hints = scaffoldHintBank[key];
-  if (!hints) return null;
+  if (!hints) {
+    console.log('[getScaffoldHint] NO HINTS FOUND for key:', key);
+    return null;
+  }
 
   const nudgeLevel = wordCount < 8 ? 'gentle' : 'deeper';
-  return { question: hints[nudgeLevel][readingLevel], nudgeLevel };
+  const question = hints[nudgeLevel][readingLevel];
+  console.log('[getScaffoldHint] found hint:', { nudgeLevel, question });
+  return { question, nudgeLevel };
 }
 
 // ─── AI-powered debrief generation ───
