@@ -3,7 +3,7 @@ import { ArrowRight, Anchor, Brain, Lightbulb, Mic } from 'lucide-react';
 import type { View, StudentDecision, Scores, ReadingLevel } from '../data/types';
 import { getDecisionNodes } from '../data/decisions';
 import { getSessionById, saveResult, computeScores, extractMisconceptions } from '../data/store';
-import { analyzeReasoning, getScaffoldHint, type ReasoningAnalysis, type ScaffoldHint } from '../data/ai';
+import { analyzeReasoning, analyzeReasoningSync, getScaffoldHint, type ReasoningAnalysis, type ScaffoldHint } from '../data/ai';
 import ScoreBar from '../components/ScoreBar';
 import Timer from '../components/Timer';
 
@@ -85,6 +85,7 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
   const [finished, setFinished] = useState(false);
   const [aiAnalysis, setAiAnalysis] = useState<ReasoningAnalysis | null>(null);
   const [scaffoldHint, setScaffoldHint] = useState<ScaffoldHint | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isDictating, setIsDictating] = useState(false);
   const [dictationError, setDictationError] = useState('');
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
@@ -392,10 +393,19 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
 
               <button
                 className="btn-primary mt-4 flex items-center gap-2"
-                disabled={!reasoning.trim()}
+                disabled={!reasoning.trim() || isAnalyzing}
                 onClick={handleConfirm}
               >
-                Confirm Decision <ArrowRight className="w-4 h-4" />
+                {isAnalyzing ? (
+                  <>
+                    <Brain className="w-4 h-4 animate-pulse text-amber-300" />
+                    <span>AI Coach is thinking...</span>
+                  </>
+                ) : (
+                  <>
+                    Confirm Decision <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
               </button>
             </div>
           )}
@@ -526,7 +536,9 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
 
   function handleConfirm() {
     handleDictationStop();
-    if (!selectedOption || !reasoning.trim()) return;
+    if (!selectedOption || !reasoning.trim() || isAnalyzing) return;
+    
+    setIsAnalyzing(true);
     const newDecision: StudentDecision = {
       nodeId: node.id,
       optionId: selectedOption,
@@ -537,26 +549,34 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
     setDecisions(updatedDecisions);
 
     // Run AI analysis on student reasoning
-    const analysis = analyzeReasoning(reasoning.trim(), selectedOption, node, session!.readingLevel);
-    setAiAnalysis(analysis);
+    analyzeReasoning(reasoning.trim(), selectedOption, node, session!.readingLevel)
+      .then(analysis => {
+        setAiAnalysis(analysis);
 
-    // Save with AI-enhanced misconception tags
-    const scores = computeScores(updatedDecisions, decisionNodes);
-    const optionTags = extractMisconceptions(updatedDecisions, decisionNodes);
-    const aiTags = analysis.misconceptionTags;
-    const mergedTags = [...new Set([...optionTags, ...aiTags])];
-    saveResult({
-      id: studentId,
-      sessionId,
-      displayName: studentName,
-      standard: session!.standard,
-      decisions: updatedDecisions,
-      finalScores: scores,
-      misconceptionTags: mergedTags,
-      completedAt: 0,
-    });
+        // Save with AI-enhanced misconception tags
+        const scores = computeScores(updatedDecisions, decisionNodes);
+        const optionTags = extractMisconceptions(updatedDecisions, decisionNodes);
+        const aiTags = analysis.misconceptionTags;
+        const mergedTags = [...new Set([...optionTags, ...aiTags])];
+        saveResult({
+          id: studentId,
+          sessionId,
+          displayName: studentName,
+          standard: session!.standard,
+          decisions: updatedDecisions,
+          finalScores: scores,
+          misconceptionTags: mergedTags,
+          completedAt: 0,
+        });
 
-    setPhase('coach');
+        setPhase('coach');
+      })
+      .catch(error => {
+        console.error('[AI] analyzeReasoning failed:', error);
+      })
+      .finally(() => {
+        setIsAnalyzing(false);
+      });
   }
 
   function handleNext() {
@@ -570,11 +590,11 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
       setFinished(true);
       const finalScores = computeScores(decisions, decisionNodes);
       const optionTags = extractMisconceptions(decisions, decisionNodes);
-      // Collect AI tags from all decisions
+      // Collect AI tags from all decisions (using sync version for fast compilation)
       const aiTags = decisions.flatMap(d => {
         const n = decisionNodes.find(nd => nd.id === d.nodeId);
         if (!n) return [];
-        return analyzeReasoning(d.reasoning, d.optionId, n, session!.readingLevel).misconceptionTags;
+        return analyzeReasoningSync(d.reasoning, d.optionId, n, session!.readingLevel).misconceptionTags;
       });
       const mergedTags = [...new Set([...optionTags, ...aiTags])];
       saveResult({

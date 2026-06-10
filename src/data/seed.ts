@@ -2,7 +2,7 @@ import type { Session, StudentResult } from './types';
 import { getSessions, getResults } from './store';
 import { getDecisionNodes } from './decisions';
 import { computeScores, extractMisconceptions } from './store';
-import { analyzeReasoning } from './ai';
+import { analyzeReasoningSync } from './ai';
 
 export const DEMO_SESSION_ID = 'demo-session-001';
 const DEMO_SESSION_CODE = 'JMS1607';
@@ -47,7 +47,7 @@ function computeResultWithAI(r: StudentResult, standard: 'VS.3' | 'VS.4'): Stude
   for (const d of r.decisions) {
     const node = decisionNodes.find(n => n.id === d.nodeId);
     if (!node) continue;
-    const analysis = analyzeReasoning(d.reasoning, d.optionId, node, 'on');
+    const analysis = analyzeReasoningSync(d.reasoning, d.optionId, node, 'on');
     for (const tag of analysis.misconceptionTags) {
       if (!aiTags.includes(tag)) aiTags.push(tag);
     }

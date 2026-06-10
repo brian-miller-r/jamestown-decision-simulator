@@ -1,8 +1,24 @@
-import { Ship, BarChart3 } from 'lucide-react';
+import { useState } from 'react';
+import { Ship, BarChart3, Key, Eye, EyeOff, Check } from 'lucide-react';
 import type { View } from '../data/types';
 import { DEMO_SESSION_ID } from '../data/seed';
 
 export default function HomeView({ onNavigate }: { onNavigate: (v: View) => void }) {
+  const [apiKey, setApiKey] = useState(() => localStorage.getItem('gemini_api_key') || '');
+  const [showKey, setShowKey] = useState(false);
+  const [showPanel, setShowPanel] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  function handleSaveKey() {
+    localStorage.setItem('gemini_api_key', apiKey.trim());
+    setSaveSuccess(true);
+    setTimeout(() => setSaveSuccess(false), 2000);
+  }
+
+  function handleClearKey() {
+    localStorage.removeItem('gemini_api_key');
+    setApiKey('');
+  }
   return (
     <div className="min-h-screen flex flex-col">
       {/* Hero with illustration */}
@@ -128,6 +144,77 @@ export default function HomeView({ onNavigate }: { onNavigate: (v: View) => void
             <span className="font-semibold text-sm">View Demo Dashboard — Pre-loaded with 2 students</span>
           </div>
         </button>
+      </div>
+
+      {/* Gemini Settings Panel */}
+      <div className="max-w-3xl mx-auto px-6 pb-8">
+        <div className="card border-2 border-navy-200 bg-white p-5">
+          <button
+            onClick={() => setShowPanel(!showPanel)}
+            className="w-full flex items-center justify-between text-navy-700 hover:text-navy-900 transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <Key className="w-5 h-5 text-amber-500 animate-pulse" />
+              <span className="font-semibold text-sm text-navy-800">Developer Settings: Gemini API Key</span>
+              {localStorage.getItem('gemini_api_key') && (
+                <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-bold">
+                  Active
+                </span>
+              )}
+            </div>
+            <span className="text-xs text-navy-400 hover:underline">
+              {showPanel ? 'Hide' : 'Configure'}
+            </span>
+          </button>
+          
+          {showPanel && (
+            <div className="mt-4 pt-4 border-t border-navy-100">
+              <p className="text-xs text-navy-500 mb-3 leading-relaxed">
+                Provide a Gemini API Key to enable real-time semantic analysis and Socratic coaching.
+                If no key is set, the application will use the local rule-based mock engine.
+                The key is saved locally in your browser's <code>localStorage</code>.
+              </p>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <input
+                    type={showKey ? 'text' : 'password'}
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                    placeholder="AIzaSy..."
+                    className="w-full px-4 py-2 text-sm border-2 border-navy-100 rounded-lg focus:border-navy-500 focus:outline-none pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowKey(!showKey)}
+                    className="absolute right-3 top-2.5 text-navy-400 hover:text-navy-600"
+                  >
+                    {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                <button
+                  onClick={handleSaveKey}
+                  className="btn-primary py-2 px-4 text-sm bg-navy-800 hover:bg-navy-900 text-white flex items-center gap-1.5"
+                >
+                  {saveSuccess ? (
+                    <>
+                      <Check className="w-4.5 h-4.5 text-emerald-400 animate-bounce" /> Saved
+                    </>
+                  ) : (
+                    'Save Key'
+                  )}
+                </button>
+                {apiKey && (
+                  <button
+                    onClick={handleClearKey}
+                    className="btn-secondary py-2 px-4 text-sm border border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       <footer className="text-center py-6 text-navy-400 text-xs">

@@ -1,3 +1,4 @@
+import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import type { Scores, StudentDecision, DecisionNode, StandardFocus, ReadingLevel } from './types';
 import { misconceptionMeta } from './decisions';
 
@@ -83,7 +84,7 @@ export interface ReasoningAnalysis {
   reasoningQuality: 'surface' | 'moderate' | 'deep';
 }
 
-export function analyzeReasoning(
+export function analyzeReasoningSync(
   reasoning: string,
   optionId: string,
   node: DecisionNode,
@@ -187,6 +188,139 @@ export function analyzeReasoning(
     confidenceBand,
     reasoningQuality: quality,
   };
+}
+
+export async function analyzeReasoning(
+  reasoning: string,
+  optionId: string,
+  node: DecisionNode,
+  readingLevel: 'below' | 'on' | 'above',
+): Promise<ReasoningAnalysis> {
+  const apiKey = localStorage.getItem('gemini_api_key') || (import.meta.env.VITE_GEMINI_API_KEY as string || '');
+  if (!apiKey) {
+    console.log('[AI] No Gemini API key found, falling back to rule-based analysis.');
+    return analyzeReasoningSync(reasoning, optionId, node, readingLevel);
+  }
+
+  try {
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-1.5-flash',
+      systemInstruction: `You are an AI History Coach helping a 4th grade social studies student in Virginia.
+The student is playing a Jamestown Decision Simulator.
+Your role is to analyze their chosen option and written reasoning for a specific decision node, check for historical misconceptions, evaluate their reasoning quality, and write supportive, personalized coaching feedback.
+
+We are covering standard:
+- VS.3 (Jamestown founding: location, Powhatan relations, food strategy, governance)
+- VS.4 (Colonial Virginia: expansion, economy/tobacco, labor/slavery, governance/wealthy planters)
+
+Misconceptions we monitor:
+1. "inland-safety" (isolation-myth): Believing inland is safe and ignoring water safety / supply routes.
+2. "colonial-entitlement" (might makes right): Assumes English weapons/authority automatically commands Powhatan cooperation.
+3. "isolation-myth": Thinks avoiding the Powhatan keeps the colony safe.
+4. "supply-dependence": Believes waiting for English supply ships is a reliable strategy.
+5. "distant-authority": Assumes distant Virginia Company rules fit daily local conditions.
+6. "expansion-entitlement": Believes colonists have the right to seize Native American land for profit.
+7. "native-slavery-myth": Thinks Native Americans could be easily enslaved as a labor source.
+8. "slavery-inevitability": Assumes racial slavery was inevitable from the start rather than a deliberate economic choice.
+9. "oligarchy-stability": Assumes concentrated planter power was stable.
+
+Coaching Guidelines:
+- Keep coaching positive, educational, and historically grounded.
+- Tailor the language complexity to the student's reading level:
+  * "below": Use short, simple sentences (around 1st-2nd grade readability). Keep feedback very concise (1-2 sentences).
+  * "on": Use standard 4th grade level language.
+  * "above": Use richer vocabulary and prompt them to think about long-term cause-and-effect relationships.
+- If they made a good choice with good reasoning, praise them and explain the historical connection.
+- If they have a misconception, gently nudge them to reconsider using historical evidence. Be supportive and push them to think like a historian.`,
+    });
+
+    const chosenOpt = node.options.find(o => o.id === optionId);
+    
+    const prompt = `Decision Node: ${node.title}
+Historical Context: ${node.historicalContext}
+Prompt: ${node.prompt}
+
+Student chose option: "${chosenOpt?.shortText}" - Description: "${chosenOpt?.text}"
+Student's written reasoning: "${reasoning}"
+Reading Level: ${readingLevel}
+
+Analyze this response. Match it to one or more of the misconception tags if applicable, detect any keywords/evidence, assess reasoning quality ('surface' | 'moderate' | 'deep'), and generate the primary coaching response.`;
+
+    const result = await model.generateContent({
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      generationConfig: {
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: SchemaType.OBJECT,
+          properties: {
+            detectedPatterns: {
+              type: SchemaType.ARRAY,
+              items: { type: SchemaType.STRING },
+              description: 'Identifiers of detected misconception patterns (e.g. fear-driven-isolation, weapon-supremacy, england-will-save, rules-from-afar, inland-illusion, english-superiority, passive-waiting).'
+            },
+            evidenceKeywords: {
+              type: SchemaType.ARRAY,
+              items: { type: SchemaType.STRING },
+              description: 'Key words or phrases from the student reasoning indicating their misconceptions.'
+            },
+            misconceptionTags: {
+              type: SchemaType.ARRAY,
+              items: { type: SchemaType.STRING },
+              description: 'Misconception tags corresponding to detected patterns (e.g. inland-safety, colonial-entitlement, isolation-myth, supply-dependence, distant-authority, expansion-entitlement, native-slavery-myth, slavery-inevitability, oligarchy-stability).'
+            },
+            primaryCoaching: {
+              type: SchemaType.STRING,
+              description: 'Personalized Socratic coaching message that addresses the student choice and reasoning, adapted to the requested reading level.'
+            },
+            secondaryCoaching: {
+              type: SchemaType.STRING,
+              nullable: true,
+              description: 'Additional coaching if a second misconception was detected, otherwise null.'
+            },
+            confidence: {
+              type: SchemaType.NUMBER,
+              description: 'Confidence score from 0.0 to 1.0.'
+            },
+            confidenceBand: {
+              type: SchemaType.STRING,
+              enum: ['High', 'Medium', 'Low'],
+              description: 'Confidence band.'
+            },
+            reasoningQuality: {
+              type: SchemaType.STRING,
+              enum: ['surface', 'moderate', 'deep'],
+              description: 'Depth of student historical reasoning.'
+            }
+          },
+          required: [
+            'detectedPatterns',
+            'evidenceKeywords',
+            'misconceptionTags',
+            'primaryCoaching',
+            'confidence',
+            'confidenceBand',
+            'reasoningQuality'
+          ]
+        }
+      }
+    });
+
+    const responseText = result.response.text();
+    const data = JSON.parse(responseText) as ReasoningAnalysis;
+    
+    console.log('%c[Gemini API] Success! Response received from live model:', 'color: #10B981; font-weight: bold;', data);
+
+    // Ensure option tags are preserved if they are present in the chosen option
+    if (chosenOpt?.misconceptionTag && !data.misconceptionTags.includes(chosenOpt.misconceptionTag)) {
+      data.misconceptionTags.push(chosenOpt.misconceptionTag);
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('[AI] Gemini API failed, falling back to rule-based analysis:', error);
+    return analyzeReasoningSync(reasoning, optionId, node, readingLevel);
+  }
 }
 
 function simplifyText(text: string): string {
@@ -444,7 +578,7 @@ export function generateTeacherInsights(
       const opt = node?.options.find(o => o.id === d.optionId);
       if (!opt?.misconceptionTag) {
         // Chose a "good" option
-        const analysis = analyzeReasoning(d.reasoning, d.optionId, node!, 'on');
+        const analysis = analyzeReasoningSync(d.reasoning, d.optionId, node!, 'on');
         if (analysis.misconceptionTags.length > 0) {
           surfaceCorrectStudents.push(r.displayName);
           break;
