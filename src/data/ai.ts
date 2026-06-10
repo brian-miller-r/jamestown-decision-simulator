@@ -197,6 +197,7 @@ export async function analyzeReasoning(
   readingLevel: 'below' | 'on' | 'above',
 ): Promise<ReasoningAnalysis> {
   const apiKey = localStorage.getItem('gemini_api_key') || (import.meta.env.VITE_GEMINI_API_KEY as string || '');
+  console.log('[AI] analyzeReasoning called. API key status:', apiKey ? `FOUND (starts with "${apiKey.slice(0, 6)}...")` : 'MISSING');
   if (!apiKey) {
     console.log('[AI] No Gemini API key found, falling back to rule-based analysis.');
     return analyzeReasoningSync(reasoning, optionId, node, readingLevel);
