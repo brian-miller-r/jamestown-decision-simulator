@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { LucideIcon } from 'lucide-react';
-import { BarChart3, ChevronLeft, ChevronRight, FileText, GraduationCap, Home, LogIn, Menu, Ship, X } from 'lucide-react';
+import { BarChart3, ChevronLeft, ChevronRight, FileText, GraduationCap, Home, LogIn, Menu, Settings, Ship, X } from 'lucide-react';
 import type { View } from './data/types';
 import { DEMO_SESSION_ID, seedDemoData } from './data/seed';
 import { getResult, getResults } from './data/store';
@@ -10,8 +10,9 @@ import StudentJoinView from './views/StudentJoinView';
 import StudentSimView from './views/StudentSimView';
 import StudentDebriefView from './views/StudentDebriefView';
 import TeacherDashboardView from './views/TeacherDashboardView';
+import SettingsView from './views/SettingsView';
 
-type NavItemId = 'home' | 'teacher-setup' | 'student-join' | 'teacher-dashboard' | 'student-debrief';
+type NavItemId = 'home' | 'teacher-setup' | 'student-join' | 'teacher-dashboard' | 'student-debrief' | 'settings';
 
 interface NavItem {
   id: NavItemId;
@@ -60,6 +61,10 @@ export default function App() {
     { id: 'student-debrief', label: 'Results', icon: FileText, target: resolveStudentDebriefTarget(view) },
   ];
 
+  const bottomNavItems: NavItem[] = [
+    { id: 'settings', label: 'Settings', icon: Settings, target: { kind: 'settings' } },
+  ];
+
   const activeNavItem = getActiveNavItem(view);
 
   return (
@@ -84,9 +89,36 @@ export default function App() {
             {desktopNavCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
           </button>
         </div>
-        <div className="px-2 py-3">
+        {/* Main nav items */}
+        <div className="px-2 py-3 flex-1">
           <nav className="space-y-1">
             {navItems.map(item => {
+              const Icon = item.icon;
+              const active = activeNavItem === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => requestNavigation(item.target, item.label)}
+                  title={item.label}
+                  className={`w-full flex items-center px-2 py-2 rounded-lg text-left transition-colors ${
+                    desktopNavCollapsed ? 'justify-center' : 'gap-2'
+                  } ${
+                    active
+                      ? 'bg-navy-100 text-navy-900 font-semibold'
+                      : 'text-navy-600 hover:bg-navy-50 hover:text-navy-900'
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  {!desktopNavCollapsed && <span className="text-xs">{item.label}</span>}
+                </button>
+              );
+            })}
+          </nav>
+        </div>
+        {/* Bottom nav (Settings) */}
+        <div className="px-2 py-3 border-t border-navy-100">
+          <nav className="space-y-1">
+            {bottomNavItems.map(item => {
               const Icon = item.icon;
               const active = activeNavItem === item.id;
               return (
@@ -147,7 +179,7 @@ export default function App() {
             </div>
             <div className="px-4 py-4">
               <nav className="space-y-1">
-                {navItems.map(item => {
+                {[...navItems, ...bottomNavItems].map(item => {
                   const Icon = item.icon;
                   const active = activeNavItem === item.id;
                   return (
@@ -232,6 +264,9 @@ function renderView(view: View, navigate: (v: View) => void) {
     case 'student-debrief':
       return <StudentDebriefView sessionId={view.sessionId} studentId={view.studentId} onNavigate={navigate} />;
 
+    case 'settings':
+      return <SettingsView />;
+
     default:
       return <HomeView onNavigate={navigate} />;
   }
@@ -304,6 +339,8 @@ function getActiveNavItem(view: View): NavItemId | null {
       return 'teacher-dashboard';
     case 'student-debrief':
       return 'student-debrief';
+    case 'settings':
+      return 'settings';
     default:
       return null;
   }

@@ -59,4 +59,5 @@ export type View =
   | { kind: 'teacher-dashboard'; sessionId: string }
   | { kind: 'student-join' }
   | { kind: 'student-sim'; sessionId: string; studentId: string; studentName: string }
-  | { kind: 'student-debrief'; sessionId: string; studentId: string };
+  | { kind: 'student-debrief'; sessionId: string; studentId: string }
+  | { kind: 'settings' };
