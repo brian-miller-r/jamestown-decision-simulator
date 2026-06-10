@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
+
 import type { Scores, StudentDecision, DecisionNode, StandardFocus, ReadingLevel } from './types';
 import { misconceptionMeta } from './decisions';
 
@@ -82,7 +83,10 @@ export interface ReasoningAnalysis {
   confidence: number;
   confidenceBand: 'High' | 'Medium' | 'Low';
   reasoningQuality: 'surface' | 'moderate' | 'deep';
+  analysisSource: 'gemini' | 'rule-based';
+  fallbackReason?: 'missing-api-key' | 'gemini-error';
 }
+const REASONING_MODELS = ['gemini-3.5-flash', 'gemini-2.5-flash'] as const;
 
 export function analyzeReasoningSync(
   reasoning: string,
@@ -187,6 +191,7 @@ export function analyzeReasoningSync(
     confidence,
     confidenceBand,
     reasoningQuality: quality,
+    analysisSource: 'rule-based',
   };
 }
 
@@ -197,17 +202,16 @@ export async function analyzeReasoning(
   readingLevel: 'below' | 'on' | 'above',
 ): Promise<ReasoningAnalysis> {
   const apiKey = localStorage.getItem('gemini_api_key') || (import.meta.env.VITE_GEMINI_API_KEY as string || '');
-  console.log('[AI] analyzeReasoning called. API key status:', apiKey ? `FOUND (starts with "${apiKey.slice(0, 6)}...")` : 'MISSING');
   if (!apiKey) {
     console.log('[AI] No Gemini API key found, falling back to rule-based analysis.');
-    return analyzeReasoningSync(reasoning, optionId, node, readingLevel);
+    return {
+      ...analyzeReasoningSync(reasoning, optionId, node, readingLevel),
+      fallbackReason: 'missing-api-key',
+    };
   }
-
-  try {
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-1.5-flash',
-      systemInstruction: `You are an AI History Coach helping a 4th grade social studies student in Virginia.
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const chosenOpt = node.options.find(o => o.id === optionId);
+  const systemInstruction = `You are an AI History Coach helping a 4th grade social studies student in Virginia.
 The student is playing a Jamestown Decision Simulator.
 Your role is to analyze their chosen option and written reasoning for a specific decision node, check for historical misconceptions, evaluate their reasoning quality, and write supportive, personalized coaching feedback.
 
@@ -233,12 +237,8 @@ Coaching Guidelines:
   * "on": Use standard 4th grade level language.
   * "above": Use richer vocabulary and prompt them to think about long-term cause-and-effect relationships.
 - If they made a good choice with good reasoning, praise them and explain the historical connection.
-- If they have a misconception, gently nudge them to reconsider using historical evidence. Be supportive and push them to think like a historian.`,
-    });
-
-    const chosenOpt = node.options.find(o => o.id === optionId);
-    
-    const prompt = `Decision Node: ${node.title}
+- If they have a misconception, gently nudge them to reconsider using historical evidence. Be supportive and push them to think like a historian.`;
+  const prompt = `Decision Node: ${node.title}
 Historical Context: ${node.historicalContext}
 Prompt: ${node.prompt}
 
@@ -247,81 +247,95 @@ Student's written reasoning: "${reasoning}"
 Reading Level: ${readingLevel}
 
 Analyze this response. Match it to one or more of the misconception tags if applicable, detect any keywords/evidence, assess reasoning quality ('surface' | 'moderate' | 'deep'), and generate the primary coaching response.`;
+  for (const modelName of REASONING_MODELS) {
+    try {
+      const model = genAI.getGenerativeModel({
+        model: modelName,
+        systemInstruction,
+      });
 
-    const result = await model.generateContent({
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      generationConfig: {
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: SchemaType.OBJECT,
-          properties: {
-            detectedPatterns: {
-              type: SchemaType.ARRAY,
-              items: { type: SchemaType.STRING },
-              description: 'Identifiers of detected misconception patterns (e.g. fear-driven-isolation, weapon-supremacy, england-will-save, rules-from-afar, inland-illusion, english-superiority, passive-waiting).'
+      const result = await model.generateContent({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig: {
+          responseMimeType: 'application/json',
+          responseSchema: {
+            type: SchemaType.OBJECT,
+            properties: {
+              detectedPatterns: {
+                type: SchemaType.ARRAY,
+                items: { type: SchemaType.STRING },
+                description: 'Identifiers of detected misconception patterns (e.g. fear-driven-isolation, weapon-supremacy, england-will-save, rules-from-afar, inland-illusion, english-superiority, passive-waiting).'
+              },
+              evidenceKeywords: {
+                type: SchemaType.ARRAY,
+                items: { type: SchemaType.STRING },
+                description: 'Key words or phrases from the student reasoning indicating their misconceptions.'
+              },
+              misconceptionTags: {
+                type: SchemaType.ARRAY,
+                items: { type: SchemaType.STRING },
+                description: 'Misconception tags corresponding to detected patterns (e.g. inland-safety, colonial-entitlement, isolation-myth, supply-dependence, distant-authority, expansion-entitlement, native-slavery-myth, slavery-inevitability, oligarchy-stability).'
+              },
+              primaryCoaching: {
+                type: SchemaType.STRING,
+                description: 'Personalized Socratic coaching message that addresses the student choice and reasoning, adapted to the requested reading level.'
+              },
+              secondaryCoaching: {
+                type: SchemaType.STRING,
+                nullable: true,
+                description: 'Additional coaching if a second misconception was detected, otherwise null.'
+              },
+              confidence: {
+                type: SchemaType.NUMBER,
+                description: 'Confidence score from 0.0 to 1.0.'
+              },
+              confidenceBand: {
+                type: SchemaType.STRING,
+                enum: ['High', 'Medium', 'Low'],
+                description: 'Confidence band.'
+              },
+              reasoningQuality: {
+                type: SchemaType.STRING,
+                enum: ['surface', 'moderate', 'deep'],
+                description: 'Depth of student historical reasoning.'
+              }
             },
-            evidenceKeywords: {
-              type: SchemaType.ARRAY,
-              items: { type: SchemaType.STRING },
-              description: 'Key words or phrases from the student reasoning indicating their misconceptions.'
-            },
-            misconceptionTags: {
-              type: SchemaType.ARRAY,
-              items: { type: SchemaType.STRING },
-              description: 'Misconception tags corresponding to detected patterns (e.g. inland-safety, colonial-entitlement, isolation-myth, supply-dependence, distant-authority, expansion-entitlement, native-slavery-myth, slavery-inevitability, oligarchy-stability).'
-            },
-            primaryCoaching: {
-              type: SchemaType.STRING,
-              description: 'Personalized Socratic coaching message that addresses the student choice and reasoning, adapted to the requested reading level.'
-            },
-            secondaryCoaching: {
-              type: SchemaType.STRING,
-              nullable: true,
-              description: 'Additional coaching if a second misconception was detected, otherwise null.'
-            },
-            confidence: {
-              type: SchemaType.NUMBER,
-              description: 'Confidence score from 0.0 to 1.0.'
-            },
-            confidenceBand: {
-              type: SchemaType.STRING,
-              enum: ['High', 'Medium', 'Low'],
-              description: 'Confidence band.'
-            },
-            reasoningQuality: {
-              type: SchemaType.STRING,
-              enum: ['surface', 'moderate', 'deep'],
-              description: 'Depth of student historical reasoning.'
-            }
-          },
-          required: [
-            'detectedPatterns',
-            'evidenceKeywords',
-            'misconceptionTags',
-            'primaryCoaching',
-            'confidence',
-            'confidenceBand',
-            'reasoningQuality'
-          ]
+            required: [
+              'detectedPatterns',
+              'evidenceKeywords',
+              'misconceptionTags',
+              'primaryCoaching',
+              'confidence',
+              'confidenceBand',
+              'reasoningQuality'
+            ]
+          }
         }
+      });
+
+      const responseText = result.response.text();
+      const data = JSON.parse(responseText) as Omit<ReasoningAnalysis, 'analysisSource' | 'fallbackReason'>;
+      const analysis: ReasoningAnalysis = {
+        ...data,
+        analysisSource: 'gemini',
+      };
+
+      // Ensure option tags are preserved if they are present in the chosen option
+      if (chosenOpt?.misconceptionTag && !analysis.misconceptionTags.includes(chosenOpt.misconceptionTag)) {
+        analysis.misconceptionTags.push(chosenOpt.misconceptionTag);
       }
-    });
 
-    const responseText = result.response.text();
-    const data = JSON.parse(responseText) as ReasoningAnalysis;
-    
-    console.log('%c[Gemini API] Success! Response received from live model:', 'color: #10B981; font-weight: bold;', data);
-
-    // Ensure option tags are preserved if they are present in the chosen option
-    if (chosenOpt?.misconceptionTag && !data.misconceptionTags.includes(chosenOpt.misconceptionTag)) {
-      data.misconceptionTags.push(chosenOpt.misconceptionTag);
+      return analysis;
+    } catch (error) {
+      console.warn(`[AI] ${modelName} failed, trying next reasoning model:`, error);
     }
-    
-    return data;
-  } catch (error) {
-    console.error('[AI] Gemini API failed, falling back to rule-based analysis:', error);
-    return analyzeReasoningSync(reasoning, optionId, node, readingLevel);
   }
+
+  console.error('[AI] All Gemini reasoning models failed, falling back to rule-based analysis.');
+  return {
+    ...analyzeReasoningSync(reasoning, optionId, node, readingLevel),
+    fallbackReason: 'gemini-error',
+  };
 }
 
 function simplifyText(text: string): string {
@@ -732,4 +746,227 @@ export function generateSmartComparison(
   }
 
   return comparisons;
+}
+
+// ─── Imagen 3 decision scene generation ───
+
+/**
+ * Map of (nodeId + optionId) → a child-safe illustrated scene description.
+ * All prompts are written in a warm, storybook-illustration style appropriate
+ * for 4th-grade students. No violence, no weapons, no graphic content.
+ */
+const DECISION_IMAGE_PROMPTS: Record<string, string> = {
+  // VS.3 — Location
+  'location:inland-river':
+    'A colorful storybook illustration of English settler children and adults rowing a wooden boat up a wide river through a lush green Virginia forest in 1607. Tall cypress trees line the shore. Sunlight filters through the canopy. Soft watercolor style, warm and inviting, no weapons.',
+  'location:coastal-port':
+    'A cheerful storybook illustration of three English sailing ships anchored in a sunny Chesapeake Bay cove in 1607. Settlers in period clothing are unloading barrels and crates onto a sandy beach. Seagulls fly overhead. Watercolor style, child-friendly, bright colors.',
+  'location:peninsula-river':
+    'A warm storybook illustration of English settlers building a small wooden fort on a green peninsula surrounded by sparkling river water in 1607 Virginia. Workers are sawing logs, raising walls, and planting a flag. Peaceful, sunny day. Watercolor style, child-safe, no weapons.',
+
+  // VS.3 — Powhatan
+  'powhatan:force-demand':
+    'A tense but child-safe storybook illustration of English settlers in 1607 Virginia standing on one side of a river, gesturing across to a Powhatan village on the other side. Powhatan people watch cautiously from their homes. Overcast sky, worried expressions, no weapons shown. Watercolor style.',
+  'powhatan:trade-negotiate':
+    'A joyful storybook illustration of English settlers and Powhatan people trading goods at a riverbank in 1607 Virginia. A settler holds out copper tools while a Powhatan elder offers baskets of corn and squash. Children from both groups watch curiously. Warm sunshine, colorful clothing. Watercolor style.',
+  'powhatan:avoid-minimize':
+    'A quiet storybook illustration of English settlers working inside a small wooden fort in 1607 Virginia, peeking through gaps in the fence at the Virginia forest outside. A Powhatan family walks peacefully past in the distance. Soft light, peaceful atmosphere. Watercolor style.',
+
+  // VS.3 — Food strategy
+  'food-strategy:wait-supply-ship':
+    'A storybook illustration of worried English settlers in 1607 Virginia looking out from a hilltop toward an empty ocean horizon, hoping to see a supply ship. They carry empty baskets. The sky is cloudy and grey. Gentle, child-friendly art style, watercolor, no violence.',
+  'food-strategy:english-crops':
+    'A colorful storybook illustration of English settlers in 1607 Virginia plowing a field and planting seeds in rows. Some settlers look puzzled as their wheat seedlings struggle in Virginia\'s red clay soil. Blue sky and bright sun. Watercolor style, child-friendly.',
+  'food-strategy:three-sisters':
+    'A bright storybook illustration of a Powhatan woman teaching English settler children how to plant corn, beans, and squash together in a garden in 1607 Virginia. Everyone is smiling and working together. Colorful vegetables, blue sky, cheerful and warm. Watercolor style.',
+
+  // VS.3 — Governance
+  'governance:company-rules':
+    'A storybook illustration of a settler in 1607 Virginia reading a large scroll labeled \'Rules from England\' to a small crowd of colonists. In the background a ship sails away across the ocean. Some settlers look puzzled. Watercolor style, child-friendly, warm colors.',
+  'governance:strong-leader':
+    'A storybook illustration of a confident colonial leader in 1607 Virginia standing on a barrel, speaking to a gathering of settlers inside a wooden fort. Everyone listens attentively. Sunlight streams in. Friendly and energetic atmosphere. Watercolor style.',
+  'governance:self-govern':
+    'A cheerful storybook illustration of English settlers in early Virginia sitting in a circle under a large oak tree, raising hands to vote on decisions together. A scroll and quill pen sit on a tree stump. Sunny day, inclusive, friendly. Watercolor style.',
+
+  // VS.4 — Location (expansion)
+  'location:rapid-inland':
+    'A storybook illustration of English settlers in colonial Virginia clearing forest land and building new farmhouses while Powhatan people watch with concerned expressions from the treeline. Peaceful but tense atmosphere, no weapons. Watercolor style, child-appropriate.',
+  'location:negotiate-borders':
+    'A warm storybook illustration of English colonial leaders and Powhatan chiefs sitting together around a fire in Virginia, drawing a map on birchbark to agree on borders. Everyone listens respectfully. Calm and cooperative mood. Watercolor style.',
+  'location:coastal-trading-posts':
+    'A bright storybook illustration of a small English trading post on the Virginia coast in the 1620s. Colonists and Powhatan traders exchange baskets of goods, furs, and tools on a sunny dock. Boats bob in the water. Friendly, colorful. Watercolor style.',
+
+  // VS.4 — Economy
+  'economy:tobacco-plantation':
+    'A detailed storybook illustration of a colonial Virginia tobacco field in the 1620s. Workers tend rows of tall tobacco plants under a warm sun. A large plantation house sits in the background. Watercolor style, child-friendly, educational tone.',
+  'economy:diverse-exports':
+    'A colorful storybook illustration of colonial Virginia settlers harvesting timber, collecting beaver pelts from a stream, and loading barrels onto a ship. A diverse, busy and productive scene. Sunny and cheerful. Watercolor style.',
+  'economy:self-sufficient-farming':
+    'A warm storybook illustration of a colonial Virginia farm with settlers tending a large garden of corn, squash, pigs, and chickens. A family smiles while carrying baskets of vegetables toward a cozy farmhouse. Sunny, peaceful, abundant. Watercolor style.',
+
+  // VS.4 — Labor
+  'labor:indentured-servants':
+    'A storybook illustration of English men and women arriving in colonial Virginia by ship, carrying small bundles of belongings and looking around with curious, hopeful expressions. A colonial official greets them on the dock. Sunny, hopeful atmosphere. Watercolor style.',
+  'labor:native-american-slavery':
+    'A sad and empathetic storybook illustration showing Native American families being separated from their homes by colonial officials in Virginia. Expressed through sorrowful faces and an overcast sky. No violence shown, child-appropriate, conveys injustice with dignity. Watercolor style.',
+  'labor:african-slavery':
+    'A somber, respectful storybook illustration showing enslaved African people arriving on the Virginia shore in 1619, depicted with dignity and sorrow. Their faces show resilience. A dark sky, gentle watercolor style, educational and child-appropriate tone that conveys the gravity of this historic injustice without graphic content.',
+
+  // VS.4 — Governance
+  'governance:planter-oligarchy':
+    'A storybook illustration of a large colonial Virginia plantation house where wealthy planters in fine clothing hold a formal meeting inside an elegant room. Outside the window, the fields are busy. Contrasts of wealth and labor shown. Watercolor style, educational.',
+  'governance:property-based-voting':
+    'A storybook illustration of colonial Virginia men lining up to vote at a polling booth outside a courthouse. Some men stand back because they do not own land. A thoughtful, inclusive but honest scene. Watercolor style, child-friendly.',
+  'governance:broader-democracy':
+    'A cheerful storybook illustration of colonial Virginia men of different backgrounds — farmers, tradespeople, and craftsmen — all participating in a town meeting under a large tree. Hands raised, voices heard. Sunny, democratic, inclusive. Watercolor style.',
+};
+
+/** Child-safety system instruction appended to every Imagen prompt */
+const CHILD_SAFE_SUFFIX =
+  ' The illustration must be fully child-safe and appropriate for elementary school children aged 9-10. Use a warm, friendly watercolor storybook art style. No weapons, blood, or frightening imagery. Faces should be kind and expressive. Educational and historically respectful.';
+const IMAGE_GENERATION_MODELS = [
+  'gemini-3.1-flash-image',
+  'gemini-2.5-flash-image',
+] as const;
+const IMAGE_CACHE_KEY = 'jamestown_decision_image_cache_v1';
+const IMAGE_QUOTA_COOLDOWN_KEY = 'jamestown_image_quota_cooldown_until';
+const IMAGE_QUOTA_COOLDOWN_MS = 5 * 60 * 1000;
+
+export interface DecisionImageResult {
+  imageDataUrl: string | null;
+  error?: string;
+}
+interface CandidatePart {
+  inlineData?: { mimeType?: string; data?: string };
+  inline_data?: { mime_type?: string; data?: string };
+  text?: string;
+}
+
+function extractImageFromParts(parts: CandidatePart[]): { mimeType: string; data: string } | null {
+  for (const part of parts) {
+    const camelInline = part.inlineData;
+    const snakeInline = part.inline_data;
+    const mimeType = camelInline?.mimeType ?? snakeInline?.mime_type;
+    const data = camelInline?.data ?? snakeInline?.data;
+    if (mimeType?.startsWith('image/') && data) {
+      return { mimeType, data };
+    }
+  }
+  return null;
+}
+
+function readDecisionImageCache(): Record<string, string> {
+  try {
+    const raw = localStorage.getItem(IMAGE_CACHE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as Record<string, string>;
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeDecisionImageCache(cache: Record<string, string>) {
+  try {
+    localStorage.setItem(IMAGE_CACHE_KEY, JSON.stringify(cache));
+  } catch {
+    // Ignore cache write failures (storage limits/private mode)
+  }
+}
+
+/**
+ * Generate an illustrated historical scene for the given decision node + option.
+ * Uses the Gemini REST API directly with current image-capable Gemini models.
+ * Returns a base64 data URL or null. Never throws.
+ */
+export async function generateDecisionImage(
+  nodeId: string,
+  optionId: string,
+): Promise<DecisionImageResult> {
+
+  const promptKey = `${nodeId}:${optionId}`;
+  const basePrompt = DECISION_IMAGE_PROMPTS[promptKey];
+  if (!basePrompt) {
+    console.warn('[ImageGen] No prompt found for key:', promptKey);
+    return { imageDataUrl: null, error: 'no-prompt' };
+  }
+  const imageCache = readDecisionImageCache();
+  const cachedImage = imageCache[promptKey];
+  if (cachedImage) {
+    return { imageDataUrl: cachedImage };
+  }
+
+  const quotaCooldownUntil = Number(localStorage.getItem(IMAGE_QUOTA_COOLDOWN_KEY) || '0');
+  if (Number.isFinite(quotaCooldownUntil) && quotaCooldownUntil > Date.now()) {
+    return { imageDataUrl: null, error: 'image-generation-quota' };
+  }
+  if (Number.isFinite(quotaCooldownUntil) && quotaCooldownUntil > 0) {
+    localStorage.removeItem(IMAGE_QUOTA_COOLDOWN_KEY);
+  }
+
+  const apiKey = localStorage.getItem('gemini_api_key') || (import.meta.env.VITE_GEMINI_API_KEY as string || '');
+  if (!apiKey) {
+    console.log('[ImageGen] No API key — skipping.');
+    return { imageDataUrl: null, error: 'missing-api-key' };
+  }
+
+  const fullPrompt = basePrompt + CHILD_SAFE_SUFFIX;
+  console.log('[ImageGen] Requesting image for:', promptKey);
+
+  try {
+    for (const modelName of IMAGE_GENERATION_MODELS) {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+      const body = {
+        contents: [{ parts: [{ text: fullPrompt }] }],
+        generationConfig: {
+          responseModalities: ['IMAGE'],
+        },
+      };
+
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        console.warn(`[ImageGen] ${modelName} failed (${res.status})`, errText);
+        if (res.status === 429 || errText.includes('RESOURCE_EXHAUSTED')) {
+          localStorage.setItem(IMAGE_QUOTA_COOLDOWN_KEY, String(Date.now() + IMAGE_QUOTA_COOLDOWN_MS));
+          return { imageDataUrl: null, error: 'image-generation-quota' };
+        }
+        if (res.status === 403 || errText.includes('PERMISSION_DENIED')) {
+          return { imageDataUrl: null, error: 'image-model-access-denied' };
+        }
+        continue;
+      }
+
+      const json = await res.json() as {
+        candidates?: Array<{
+          content?: {
+            parts?: CandidatePart[];
+          };
+        }>;
+      };
+      const candidates = json.candidates ?? [];
+      for (const candidate of candidates) {
+        const parts = candidate.content?.parts ?? [];
+        const image = extractImageFromParts(parts);
+        if (!image) continue;
+        console.log('[ImageGen] Image received! model:', modelName, 'mime:', image.mimeType, 'b64 length:', image.data.length);
+        const imageDataUrl = `data:${image.mimeType};base64,${image.data}`;
+        writeDecisionImageCache({
+          ...imageCache,
+          [promptKey]: imageDataUrl,
+        });
+        return { imageDataUrl };
+      }
+      console.warn(`[ImageGen] ${modelName} returned no image in generateContent response.`);
+    }
+    return { imageDataUrl: null, error: 'image-generation-unavailable' };
+  } catch (error) {
+    console.error('[ImageGen] Image generation failed:', error);
+    return { imageDataUrl: null, error: 'image-generation-unavailable' };
+  }
 }
