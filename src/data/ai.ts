@@ -326,8 +326,8 @@ Analyze this response. Match it to one or more of the misconception tags if appl
       }
 
       return analysis;
-    } catch (error) {
-
+    } catch {
+      continue;
     }
   }
 
@@ -748,4 +748,464 @@ export function generateSmartComparison(
   return comparisons;
 }
 
+// ─── Decision image generation (scene spec + provider fallback) ───
+
+const IMAGE_SCENE_SPEC_MODELS = ['gemini-3.5-flash', 'gemini-2.5-flash'] as const;
+const IMAGE_GENERATION_MODELS = ['gemini-3.1-flash-image', 'gemini-2.5-flash-image'] as const;
+const XAI_IMAGE_MODEL = 'grok-imagine-image-quality';
+const IMAGE_CACHE_KEY = 'jamestown_decision_image_cache_v2';
+const IMAGE_QUOTA_COOLDOWN_MS = 5 * 60 * 1000;
+
+type ImageProvider = 'gemini' | 'xai' | 'cache';
+type SceneSpecSource = 'gemini' | 'template';
+type DecisionImageFailure =
+  | 'missing-api-key'
+  | 'no-prompt'
+  | 'image-model-access-denied'
+  | 'image-generation-quota'
+  | 'image-generation-unavailable';
+
+const CHILD_SAFE_SUFFIX =
+  ' The illustration must be fully child-safe and appropriate for elementary school children aged 9-10. Use a warm, friendly watercolor storybook art style. No weapons, blood, or frightening imagery. Faces should be kind and expressive. Educational and historically respectful.';
+
+interface DecisionSceneSpec {
+  title: string;
+  setting: string;
+  characters: string[];
+  action: string;
+  mood: string;
+  palette: string[];
+  historicalDetails: string[];
+}
+
+interface ProviderAttemptResult {
+  imageDataUrl: string | null;
+  failure?: 'quota' | 'access-denied' | 'unavailable';
+}
+
+interface CandidatePart {
+  inlineData?: { mimeType?: string; data?: string };
+  inline_data?: { mime_type?: string; data?: string };
+}
+
+export interface DecisionImageInput {
+  node: DecisionNode;
+  optionId: string;
+  reasoning: string;
+  readingLevel: ReadingLevel;
+}
+
+export interface DecisionImageResult {
+  imageDataUrl: string | null;
+  error?: DecisionImageFailure;
+  provider?: ImageProvider;
+  sceneSpecSource?: SceneSpecSource;
+}
+
+function getQuotaCooldownStorageKey(provider: Exclude<ImageProvider, 'cache'>): string {
+  return `jamestown_image_quota_cooldown_until_${provider}`;
+}
+
+function isProviderInQuotaCooldown(provider: Exclude<ImageProvider, 'cache'>): boolean {
+  const cooldownUntil = Number(localStorage.getItem(getQuotaCooldownStorageKey(provider)) || '0');
+  if (!Number.isFinite(cooldownUntil) || cooldownUntil <= 0) return false;
+  if (cooldownUntil <= Date.now()) {
+    localStorage.removeItem(getQuotaCooldownStorageKey(provider));
+    return false;
+  }
+  return true;
+}
+
+function markProviderQuotaCooldown(provider: Exclude<ImageProvider, 'cache'>) {
+  localStorage.setItem(
+    getQuotaCooldownStorageKey(provider),
+    String(Date.now() + IMAGE_QUOTA_COOLDOWN_MS),
+  );
+}
+
+function extractImageFromParts(parts: CandidatePart[]): { mimeType: string; data: string } | null {
+  for (const part of parts) {
+    const camelInline = part.inlineData;
+    const snakeInline = part.inline_data;
+    const mimeType = camelInline?.mimeType ?? snakeInline?.mime_type;
+    const data = camelInline?.data ?? snakeInline?.data;
+    if (mimeType?.startsWith('image/') && data) {
+      return { mimeType, data };
+    }
+  }
+  return null;
+}
+
+function normalizeReasoningForCache(reasoning: string): string {
+  return reasoning.trim().toLowerCase().replace(/\s+/g, ' ').slice(0, 320);
+}
+
+function hashString(value: string): string {
+  let hash = 5381;
+  for (let idx = 0; idx < value.length; idx += 1) {
+    hash = (hash * 33) ^ value.charCodeAt(idx);
+  }
+  return (hash >>> 0).toString(36);
+}
+
+function getDecisionImageCacheKey(input: DecisionImageInput): string {
+  const reasoningHash = hashString(normalizeReasoningForCache(input.reasoning));
+  return `${input.node.id}:${input.optionId}:${reasoningHash}`;
+}
+
+function readDecisionImageCache(): Record<string, string> {
+  try {
+    const raw = localStorage.getItem(IMAGE_CACHE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as Record<string, string>;
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeDecisionImageCache(cache: Record<string, string>) {
+  try {
+    localStorage.setItem(IMAGE_CACHE_KEY, JSON.stringify(cache));
+  } catch {
+    // Ignore cache write failures (storage limits/private mode)
+  }
+}
+
+function sanitizeStringList(value: unknown, fallback: string[]): string[] {
+  if (!Array.isArray(value)) return fallback;
+  const cleaned = value
+    .filter(item => typeof item === 'string')
+    .map(item => item.trim())
+    .filter(Boolean);
+  return cleaned.length > 0 ? cleaned : fallback;
+}
+
+function createTemplateSceneSpec(input: DecisionImageInput, optionText: string): DecisionSceneSpec {
+  const reasoningSnippet = input.reasoning.trim().slice(0, 140);
+  return {
+    title: `Jamestown choice: ${input.node.title}`,
+    setting: `${input.node.historicalContext} The scene takes place in colonial Virginia.`,
+    characters: ['English settlers', 'Powhatan community members when relevant'],
+    action: `Illustrate the moment the student chose "${optionText}". Show that this choice is connected to their reasoning: "${reasoningSnippet || 'the student explained their thinking'}".`,
+    mood: 'Thoughtful, educational, and age-appropriate',
+    palette: ['Warm sunlight', 'Natural greens and river blues', 'Soft watercolor tones'],
+    historicalDetails: [
+      'Respect period-appropriate 1600s Virginia clothing, housing, and tools',
+      'Keep the scene educational, not violent',
+      'Avoid caricatures; portray all people with dignity',
+    ],
+  };
+}
+
+function normalizeSceneSpec(raw: unknown, fallback: DecisionSceneSpec): DecisionSceneSpec {
+  if (!raw || typeof raw !== 'object') return fallback;
+  const data = raw as Partial<DecisionSceneSpec>;
+  return {
+    title: typeof data.title === 'string' && data.title.trim() ? data.title.trim() : fallback.title,
+    setting: typeof data.setting === 'string' && data.setting.trim() ? data.setting.trim() : fallback.setting,
+    characters: sanitizeStringList(data.characters, fallback.characters),
+    action: typeof data.action === 'string' && data.action.trim() ? data.action.trim() : fallback.action,
+    mood: typeof data.mood === 'string' && data.mood.trim() ? data.mood.trim() : fallback.mood,
+    palette: sanitizeStringList(data.palette, fallback.palette),
+    historicalDetails: sanitizeStringList(data.historicalDetails, fallback.historicalDetails),
+  };
+}
+
+async function generateSceneSpec(
+  input: DecisionImageInput,
+  optionText: string,
+  geminiApiKey: string,
+): Promise<{ sceneSpec: DecisionSceneSpec; source: SceneSpecSource }> {
+  const fallback = createTemplateSceneSpec(input, optionText);
+  if (!geminiApiKey) {
+    return { sceneSpec: fallback, source: 'template' };
+  }
+
+  const genAI = new GoogleGenerativeAI(geminiApiKey);
+  const systemInstruction = `You produce child-safe historical scene specs for 4th-grade students.
+Return only JSON.
+Respect Jamestown-era context, avoid violence, and keep language concrete and visual.
+Do not invent fantasy elements or modern objects.`;
+  const userPrompt = `Create one visual scene spec for an illustration.
+Decision title: ${input.node.title}
+Decision prompt: ${input.node.prompt}
+Historical context: ${input.node.historicalContext}
+Selected option: ${optionText}
+Student reasoning: ${input.reasoning}
+Reading level: ${input.readingLevel}
+
+Return fields:
+- title: concise scene title
+- setting: one descriptive sentence for place/time
+- characters: 2-5 short character phrases
+- action: one sentence that visualizes the specific choice
+- mood: short phrase
+- palette: 3-5 color/lighting phrases
+- historicalDetails: 2-4 factual visual constraints`;
+
+  for (const modelName of IMAGE_SCENE_SPEC_MODELS) {
+    try {
+      const model = genAI.getGenerativeModel({
+        model: modelName,
+        systemInstruction,
+      });
+      const result = await model.generateContent({
+        contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+        generationConfig: {
+          responseMimeType: 'application/json',
+          responseSchema: {
+            type: SchemaType.OBJECT,
+            properties: {
+              title: { type: SchemaType.STRING },
+              setting: { type: SchemaType.STRING },
+              characters: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
+              action: { type: SchemaType.STRING },
+              mood: { type: SchemaType.STRING },
+              palette: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
+              historicalDetails: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
+            },
+            required: ['title', 'setting', 'characters', 'action', 'mood', 'palette', 'historicalDetails'],
+          },
+        },
+      });
+
+      const parsed = JSON.parse(result.response.text()) as unknown;
+      return {
+        sceneSpec: normalizeSceneSpec(parsed, fallback),
+        source: 'gemini',
+      };
+    } catch {
+      // Try next model, then fallback
+    }
+  }
+
+  return { sceneSpec: fallback, source: 'template' };
+}
+
+function buildImagePromptFromSceneSpec(sceneSpec: DecisionSceneSpec): string {
+  return [
+    sceneSpec.title,
+    `Setting: ${sceneSpec.setting}`,
+    `Characters: ${sceneSpec.characters.join(', ')}`,
+    `Action: ${sceneSpec.action}`,
+    `Mood: ${sceneSpec.mood}`,
+    `Palette: ${sceneSpec.palette.join(', ')}`,
+    `Historical details: ${sceneSpec.historicalDetails.join('; ')}`,
+    'Style: watercolor storybook illustration, cinematic framing, high detail, warm educational tone.',
+    CHILD_SAFE_SUFFIX,
+  ].join(' ');
+}
+
+function isQuotaFailure(status: number, bodyText: string): boolean {
+  const lower = bodyText.toLowerCase();
+  return (
+    status === 429 ||
+    lower.includes('resource_exhausted') ||
+    lower.includes('quota') ||
+    lower.includes('rate limit')
+  );
+}
+
+function isAccessFailure(status: number, bodyText: string): boolean {
+  const lower = bodyText.toLowerCase();
+  return (
+    status === 401 ||
+    status === 403 ||
+    lower.includes('permission_denied') ||
+    lower.includes('access denied') ||
+    lower.includes('unauthorized')
+  );
+}
+
+async function generateImageWithGemini(prompt: string, apiKey: string): Promise<ProviderAttemptResult> {
+  for (const modelName of IMAGE_GENERATION_MODELS) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+          responseModalities: ['IMAGE'],
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      if (isQuotaFailure(response.status, errorBody)) {
+        return { imageDataUrl: null, failure: 'quota' };
+      }
+      if (isAccessFailure(response.status, errorBody)) {
+        return { imageDataUrl: null, failure: 'access-denied' };
+      }
+      continue;
+    }
+
+    const payload = await response.json() as {
+      candidates?: Array<{
+        content?: {
+          parts?: CandidatePart[];
+        };
+      }>;
+    };
+    const candidates = payload.candidates ?? [];
+    for (const candidate of candidates) {
+      const parts = candidate.content?.parts ?? [];
+      const image = extractImageFromParts(parts);
+      if (!image) continue;
+      return { imageDataUrl: `data:${image.mimeType};base64,${image.data}` };
+    }
+  }
+
+  return { imageDataUrl: null, failure: 'unavailable' };
+}
+
+async function generateImageWithXai(prompt: string, apiKey: string): Promise<ProviderAttemptResult> {
+  const response = await fetch('https://api.x.ai/v1/images/generations', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: XAI_IMAGE_MODEL,
+      prompt,
+      n: 1,
+      size: '1024x1024',
+      response_format: 'b64_json',
+    }),
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    if (isQuotaFailure(response.status, errorBody)) {
+      return { imageDataUrl: null, failure: 'quota' };
+    }
+    if (isAccessFailure(response.status, errorBody)) {
+      return { imageDataUrl: null, failure: 'access-denied' };
+    }
+    return { imageDataUrl: null, failure: 'unavailable' };
+  }
+
+  const payload = await response.json() as {
+    data?: Array<{ b64_json?: string; url?: string }>;
+  };
+  const image = payload.data?.[0];
+  if (image?.b64_json) {
+    return { imageDataUrl: `data:image/png;base64,${image.b64_json}` };
+  }
+  if (image?.url) {
+    return { imageDataUrl: image.url };
+  }
+  return { imageDataUrl: null, failure: 'unavailable' };
+}
+
+/**
+ * Two-step decision image pipeline:
+ * 1) Build a scene spec from decision + student reasoning (Gemini text model with local template fallback).
+ * 2) Render image with provider fallback (Gemini image model, then xAI if configured).
+ */
+export async function generateDecisionImage(input: DecisionImageInput): Promise<DecisionImageResult> {
+  const selectedOption = input.node.options.find(option => option.id === input.optionId);
+  if (!selectedOption) {
+    return { imageDataUrl: null, error: 'no-prompt' };
+  }
+
+  const cacheKey = getDecisionImageCacheKey(input);
+  const imageCache = readDecisionImageCache();
+  const cachedImage = imageCache[cacheKey];
+  if (cachedImage) {
+    return { imageDataUrl: cachedImage, provider: 'cache' };
+  }
+
+  const geminiApiKey = localStorage.getItem('gemini_api_key') || (import.meta.env.VITE_GEMINI_API_KEY as string || '');
+  const xaiApiKey = localStorage.getItem('xai_api_key') || (import.meta.env.VITE_XAI_API_KEY as string || '');
+  if (!geminiApiKey && !xaiApiKey) {
+    return { imageDataUrl: null, error: 'missing-api-key' };
+  }
+
+  try {
+    const { sceneSpec, source } = await generateSceneSpec(input, selectedOption.text, geminiApiKey);
+    const prompt = buildImagePromptFromSceneSpec(sceneSpec);
+
+    const providers: Array<{
+      provider: Exclude<ImageProvider, 'cache'>;
+      key: string;
+      generator: (promptText: string, key: string) => Promise<ProviderAttemptResult>;
+    }> = [];
+    if (geminiApiKey) {
+      providers.push({
+        provider: 'gemini',
+        key: geminiApiKey,
+        generator: generateImageWithGemini,
+      });
+    }
+    if (xaiApiKey) {
+      providers.push({
+        provider: 'xai',
+        key: xaiApiKey,
+        generator: generateImageWithXai,
+      });
+    }
+
+    let sawQuotaFailure = false;
+    let sawAccessFailure = false;
+
+    for (const entry of providers) {
+      if (isProviderInQuotaCooldown(entry.provider)) {
+        sawQuotaFailure = true;
+        continue;
+      }
+
+      const result = await entry.generator(prompt, entry.key);
+      if (result.imageDataUrl) {
+        writeDecisionImageCache({
+          ...imageCache,
+          [cacheKey]: result.imageDataUrl,
+        });
+        return {
+          imageDataUrl: result.imageDataUrl,
+          provider: entry.provider,
+          sceneSpecSource: source,
+        };
+      }
+
+      if (result.failure === 'quota') {
+        markProviderQuotaCooldown(entry.provider);
+        sawQuotaFailure = true;
+        continue;
+      }
+      if (result.failure === 'access-denied') {
+        sawAccessFailure = true;
+      }
+    }
+
+    if (sawQuotaFailure) {
+      return {
+        imageDataUrl: null,
+        error: 'image-generation-quota',
+        sceneSpecSource: source,
+      };
+    }
+    if (sawAccessFailure) {
+      return {
+        imageDataUrl: null,
+        error: 'image-model-access-denied',
+        sceneSpecSource: source,
+      };
+    }
+    return {
+      imageDataUrl: null,
+      error: 'image-generation-unavailable',
+      sceneSpecSource: source,
+    };
+  } catch {
+    return {
+      imageDataUrl: null,
+      error: 'image-generation-unavailable',
+    };
+  }
+}
 
