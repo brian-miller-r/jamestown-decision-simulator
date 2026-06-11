@@ -3,7 +3,7 @@ import { ArrowRight, Anchor, Brain, Lightbulb, Mic } from 'lucide-react';
 import type { View, StudentDecision, Scores, ReadingLevel } from '../data/types';
 import { getDecisionNodes } from '../data/decisions';
 import { getSessionById, saveResult, computeScores, extractMisconceptions } from '../data/store';
-import { analyzeReasoning, analyzeReasoningSync, getScaffoldHint, generateDecisionImage, type ReasoningAnalysis, type ScaffoldHint } from '../data/ai';
+import { analyzeReasoning, analyzeReasoningSync, getScaffoldHint, type ReasoningAnalysis, type ScaffoldHint } from '../data/ai';
 import ScoreBar from '../components/ScoreBar';
 import Timer from '../components/Timer';
 
@@ -37,23 +37,7 @@ function errorMessageFromSpeechCode(errorCode?: string): string {
       return 'Voice input is unavailable right now. Please try again or type your response.';
   }
 }
-function imageErrorMessage(error: string | null): string | null {
-  if (!error) return null;
-  switch (error) {
-    case 'missing-api-key':
-      return 'Add a Gemini API key in Developer Settings to enable historical illustrations.';
-    case 'no-prompt':
-      return 'No illustration prompt is configured for this decision yet.';
-    case 'image-model-access-denied':
-      return 'Your Gemini key can run text coaching, but image generation is not enabled for this project yet.';
-    case 'image-generation-quota':
-      return 'Image generation quota is currently exhausted. Try again in a few minutes.';
-    case 'image-generation-unavailable':
-      return 'Image generation is temporarily unavailable. Your coaching feedback is still ready.';
-    default:
-      return 'Could not generate an illustration for this decision.';
-  }
-}
+
 
 type Phase = 'intro' | 'decide' | 'coach';
 
@@ -106,10 +90,7 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
   const [isDictating, setIsDictating] = useState(false);
   const [dictationError, setDictationError] = useState('');
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
-  // Imagen illustrated scene
-  const [decisionImageUrl, setDecisionImageUrl] = useState<string | null>(null);
-  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
-  const [imageError, setImageError] = useState<string | null>(null);
+
 
   const session = getSessionById(sessionId);
   const standard = session?.standard;
@@ -466,8 +447,6 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
         ? 'Live Gemini is not configured. Add an API key in Developer Settings to enable live analysis.'
         : 'Gemini request failed, so this response used local fallback analysis.'
       : null;
-    const friendlyImageError = imageErrorMessage(imageError);
-
     const lastDecision = decisions[decisions.length - 1];
     const chosenOption = node.options.find(o => o.id === lastDecision?.optionId);
 
@@ -488,68 +467,6 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
         </header>
 
         <main className="max-w-3xl mx-auto px-6 py-6 space-y-4">
-
-          {/* ── Illustrated historical scene ── */}
-          <div className="rounded-xl overflow-hidden shadow-md relative bg-navy-800" style={{ aspectRatio: '16/9' }}>
-            {/* Shimmer placeholder while image loads */}
-            {isGeneratingImage && !decisionImageUrl && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-navy-800">
-                {/* animated shimmer bars */}
-                <div className="w-full h-full absolute inset-0 overflow-hidden">
-                  <div
-                    className="absolute inset-0"
-                    style={{
-                      background: 'linear-gradient(90deg, #1e2d4a 0%, #2d4470 40%, #1e2d4a 80%)',
-                      backgroundSize: '200% 100%',
-                      animation: 'shimmer 1.8s infinite',
-                    }}
-                  />
-                </div>
-                <div className="relative z-10 text-center">
-                  <div className="w-12 h-12 rounded-full bg-amber-400/20 flex items-center justify-center mx-auto mb-3 border border-amber-400/30">
-                    <svg className="w-6 h-6 text-amber-400 animate-spin" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
-                  </div>
-                  <p className="text-amber-300 text-sm font-semibold">Illustrating your decision…</p>
-                  <p className="text-navy-400 text-xs mt-1">AI is painting a historical scene</p>
-                </div>
-              </div>
-            )}
-
-            {/* Generated image */}
-            {decisionImageUrl && (
-              <img
-                src={decisionImageUrl}
-                alt={`Historical illustration: ${node.title} — ${chosenOption?.shortText ?? ''}`}
-                className="w-full h-full object-cover"
-                style={{ animation: 'fadeIn 0.6s ease' }}
-              />
-            )}
-
-            {/* No image, not loading — blank state */}
-            {!isGeneratingImage && !decisionImageUrl && (
-              <div className="absolute inset-0 flex items-center justify-center flex-col gap-1 px-4">
-                <p className="text-navy-500 text-xs text-center">Historical illustration unavailable</p>
-                {friendlyImageError && (
-                  <p className="text-red-400 text-xs text-center max-w-sm">{friendlyImageError}</p>
-                )}
-              </div>
-            )}
-
-            {/* Caption overlay */}
-            {(decisionImageUrl || isGeneratingImage) && (
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-4 py-3">
-                <p className="text-white text-xs font-semibold">
-                  {node.title}
-                </p>
-                {chosenOption && (
-                  <p className="text-amber-300 text-xs">Your choice: {chosenOption.shortText}</p>
-                )}
-              </div>
-            )}
-          </div>
 
           {/* Primary coaching */}
           <div className={`card border-l-4 ${hasMisconception ? 'border-l-amber-400' : surfaceCorrect ? 'border-l-blue-400' : 'border-l-emerald-500'}`}>
@@ -647,11 +564,6 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
     if (!selectedOption || !reasoning.trim() || isAnalyzing) return;
 
     setIsAnalyzing(true);
-    // Reset image state for this new decision
-    setDecisionImageUrl(null);
-    setIsGeneratingImage(true);
-    setImageError(null);
-
     const cleanedReasoning = reasoning.trim();
     const newDecision: StudentDecision = {
       nodeId: node.id,
@@ -682,20 +594,6 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
       setPhase('coach');
     };
 
-    // Fire text analysis and image generation in parallel
-    const capturedNodeId = node.id;
-    const capturedOptionId = selectedOption;
-
-    // Image generation runs in background — updates state when ready
-    generateDecisionImage(capturedNodeId, capturedOptionId).then(result => {
-      setIsGeneratingImage(false);
-      if (result.imageDataUrl) {
-        setDecisionImageUrl(result.imageDataUrl);
-      } else {
-        setImageError(result.error ?? 'unknown error');
-      }
-    });
-
     try {
       const analysis = await analyzeReasoning(cleanedReasoning, selectedOption, node, session!.readingLevel);
       finalizeDecision(analysis);
@@ -717,9 +615,6 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
       setSelectedOption(null);
       setReasoning('');
       setAiAnalysis(null);
-      setDecisionImageUrl(null);
-      setIsGeneratingImage(false);
-      setImageError(null);
       setPhase('decide');
     } else {
       setFinished(true);
