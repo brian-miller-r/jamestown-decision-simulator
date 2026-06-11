@@ -1,6 +1,5 @@
-import { BarChart3, Ship } from 'lucide-react';
+import { Ship } from 'lucide-react';
 import type { View } from '../data/types';
-import { DEMO_SESSION_ID } from '../data/seed';
 
 export default function HomeView({ onNavigate }: { onNavigate: (v: View) => void }) {
   return (
@@ -30,17 +29,6 @@ export default function HomeView({ onNavigate }: { onNavigate: (v: View) => void
             A 7-minute branching simulation where students make real Jamestown decisions
             and teachers instantly see misconception insights for SOL-aligned reteaching.
           </p>
-          <div className="mt-8 flex flex-col items-center gap-3">
-            <button
-              onClick={() => onNavigate({ kind: 'teacher-dashboard', sessionId: DEMO_SESSION_ID })}
-              className="btn-primary bg-amber-500 hover:bg-amber-600 text-navy-900 px-10 py-4 text-base shadow-xl"
-            >
-              Run 90-Second Live Demo
-            </button>
-            <p className="text-xs text-navy-200">
-              Preloaded class data • No setup needed
-            </p>
-          </div>
         </div>
       </header>
 
@@ -117,22 +105,8 @@ export default function HomeView({ onNavigate }: { onNavigate: (v: View) => void
         </div>
       </main>
 
-      {/* Demo quick-access */}
-      <div className="max-w-3xl mx-auto px-6 pb-8">
-        <button
-          onClick={() => onNavigate({ kind: 'teacher-dashboard', sessionId: DEMO_SESSION_ID })}
-          className="w-full card border-2 border-dashed border-navy-200 hover:border-navy-400 hover:bg-navy-50/50 transition-all duration-200 text-center group cursor-pointer"
-        >
-          <div className="flex items-center justify-center gap-2 text-navy-600 group-hover:text-navy-800">
-            <BarChart3 className="w-5 h-5" />
-            <span className="font-semibold text-sm">View Demo Dashboard — Pre-loaded with 2 students</span>
-          </div>
-        </button>
-      </div>
-
-
       <footer className="text-center py-6 text-navy-400 text-xs">
-        VS.3 &amp; VS.4 Aligned &middot; Virginia Standards of Learning
+        VS.3 &amp; VS.4 Aligned &middot; Virginia Standards of Learning &middot; Powered by Gemini AI
       </footer>
     </div>
   );

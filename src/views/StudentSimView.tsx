@@ -116,13 +116,7 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
   // Reasoning scaffold — shows a Socratic nudge while student is typing
   // Shows after 400ms once they start typing, hides when reasoning is deep enough
   useEffect(() => {
-    console.log('[Scaffold Debug] effect running', {
-      hasReasoning: !!reasoning.trim(),
-      hasSelectedOption: !!selectedOption,
-      hasNode: !!node,
-      hasSession: !!session,
-      reasoningText: reasoning.trim().slice(0, 30),
-    });
+
 
     if (!reasoning.trim() || !selectedOption || !node || !session) {
       setScaffoldHint(null);
@@ -133,9 +127,9 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
     const words = reasoning.trim().split(/\s+/).filter(Boolean).length;
     const lower = reasoning.toLowerCase();
     const hasConnector = /\b(because|since|therefore|however|but|although|which means|this means|so that)\b/.test(lower);
-    console.log('[Scaffold Debug] word count:', words, 'hasConnector:', hasConnector);
+
     if (words >= 15 && hasConnector) {
-      console.log('[Scaffold Debug] deep reasoning, dismissing hint');
+
       setScaffoldHint(null);
       return;
     }
@@ -143,7 +137,7 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
     // Short debounce so hint doesn't flicker on every keystroke
     const timer = setTimeout(() => {
       const hint = getScaffoldHint(reasoning, node.id, session.standard, session.readingLevel);
-      console.log('[Scaffold Debug] computed hint:', hint);
+
       setScaffoldHint(hint);
     }, 400);
 
