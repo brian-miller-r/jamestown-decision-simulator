@@ -38,6 +38,59 @@ function errorMessageFromSpeechCode(errorCode?: string): string {
   }
 }
 
+function escapeSvgText(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function wrapText(value: string, maxChars: number): string[] {
+  const words = value.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return [];
+  const lines: string[] = [];
+  let current = '';
+  for (const word of words) {
+    const next = current ? `${current} ${word}` : word;
+    if (next.length <= maxChars) {
+      current = next;
+      continue;
+    }
+    if (current) lines.push(current);
+    current = word;
+  }
+  if (current) lines.push(current);
+  return lines;
+}
+
+function buildLocalFallbackDecisionImage(nodeTitle: string, optionText: string, reasoning: string): string {
+  const heading = `${nodeTitle} — ${optionText || 'Student decision'}`;
+  const reasoningText = reasoning.trim() || 'The student explained their decision.';
+  const lines = [
+    ...wrapText(heading, 44).slice(0, 2),
+    ...wrapText(reasoningText, 52).slice(0, 5),
+  ];
+  const text = lines
+    .map((line, idx) => `<text x="70" y="${220 + idx * 42}" fill="#e8eef8" font-size="30" font-family="Inter, Arial, sans-serif">${escapeSvgText(line)}</text>`)
+    .join('');
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-label="Local historical fallback illustration">
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="#213a5b"/>
+    <stop offset="100%" stop-color="#162b43"/>
+  </linearGradient>
+</defs>
+<rect width="1280" height="720" fill="url(#bg)"/>
+<rect x="40" y="40" width="1200" height="640" rx="24" fill="rgba(14, 24, 38, 0.32)" stroke="rgba(255, 255, 255, 0.16)"/>
+<text x="70" y="118" fill="#ffd28f" font-size="24" font-family="Inter, Arial, sans-serif">Historical illustration (local fallback)</text>
+<text x="70" y="162" fill="#b8c8df" font-size="20" font-family="Inter, Arial, sans-serif">AI image providers were unavailable for this decision.</text>
+${text}
+</svg>`;
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+}
+
 function imageErrorMessage(error: string | null): string | null {
   if (!error) return null;
   switch (error) {
@@ -645,6 +698,12 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
     const imageRequestId = imageRequestIdRef.current + 1;
     imageRequestIdRef.current = imageRequestId;
     const cleanedReasoning = reasoning.trim();
+    const selectedOptionMeta = node.options.find(option => option.id === selectedOption);
+    const localFallbackImageUrl = buildLocalFallbackDecisionImage(
+      node.title,
+      selectedOptionMeta?.shortText ?? selectedOption,
+      cleanedReasoning,
+    );
     const newDecision: StudentDecision = {
       nodeId: node.id,
       optionId: selectedOption,
@@ -691,13 +750,18 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
           : result.provider === 'local-fallback' ? 'Local fallback'
           : null;
         setImageProviderLabel(providerLabel);
+        setImageError(null);
       } else {
-        setImageError(result.error ?? 'image-generation-unavailable');
+        setDecisionImageUrl(localFallbackImageUrl);
+        setImageProviderLabel('Local fallback');
+        setImageError(null);
       }
     }).catch(() => {
       if (imageRequestIdRef.current !== imageRequestId) return;
       setIsGeneratingImage(false);
-      setImageError('image-generation-unavailable');
+      setDecisionImageUrl(localFallbackImageUrl);
+      setImageProviderLabel('Local fallback');
+      setImageError(null);
     });
 
     try {
