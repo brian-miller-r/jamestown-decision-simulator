@@ -688,6 +688,7 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
           result.provider === 'gemini' ? 'Gemini'
           : result.provider === 'xai' ? 'xAI'
           : result.provider === 'cache' ? 'Cached image'
+          : result.provider === 'local-fallback' ? 'Local fallback'
           : null;
         setImageProviderLabel(providerLabel);
       } else {

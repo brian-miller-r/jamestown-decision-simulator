@@ -756,7 +756,8 @@ const XAI_IMAGE_MODEL = 'grok-imagine-image-quality';
 const IMAGE_CACHE_KEY = 'jamestown_decision_image_cache_v2';
 const IMAGE_QUOTA_COOLDOWN_MS = 5 * 60 * 1000;
 
-type ImageProvider = 'gemini' | 'xai' | 'cache';
+type ExternalImageProvider = 'gemini' | 'xai';
+type ImageProvider = ExternalImageProvider | 'cache' | 'local-fallback';
 type SceneSpecSource = 'gemini' | 'template';
 type DecisionImageFailure =
   | 'missing-api-key'
@@ -802,11 +803,11 @@ export interface DecisionImageResult {
   sceneSpecSource?: SceneSpecSource;
 }
 
-function getQuotaCooldownStorageKey(provider: Exclude<ImageProvider, 'cache'>): string {
+function getQuotaCooldownStorageKey(provider: ExternalImageProvider): string {
   return `jamestown_image_quota_cooldown_until_${provider}`;
 }
 
-function isProviderInQuotaCooldown(provider: Exclude<ImageProvider, 'cache'>): boolean {
+function isProviderInQuotaCooldown(provider: ExternalImageProvider): boolean {
   const cooldownUntil = Number(localStorage.getItem(getQuotaCooldownStorageKey(provider)) || '0');
   if (!Number.isFinite(cooldownUntil) || cooldownUntil <= 0) return false;
   if (cooldownUntil <= Date.now()) {
@@ -816,7 +817,7 @@ function isProviderInQuotaCooldown(provider: Exclude<ImageProvider, 'cache'>): b
   return true;
 }
 
-function markProviderQuotaCooldown(provider: Exclude<ImageProvider, 'cache'>) {
+function markProviderQuotaCooldown(provider: ExternalImageProvider) {
   localStorage.setItem(
     getQuotaCooldownStorageKey(provider),
     String(Date.now() + IMAGE_QUOTA_COOLDOWN_MS),
@@ -851,6 +852,79 @@ function hashString(value: string): string {
 function getDecisionImageCacheKey(input: DecisionImageInput): string {
   const reasoningHash = hashString(normalizeReasoningForCache(input.reasoning));
   return `${input.node.id}:${input.optionId}:${reasoningHash}`;
+}
+
+function getDecisionImageSharedCacheKey(input: DecisionImageInput): string {
+  return `${input.node.id}:${input.optionId}:shared`;
+}
+
+function escapeSvgText(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function wrapSvgText(value: string, maxChars: number): string[] {
+  const words = value.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return [];
+  const lines: string[] = [];
+  let currentLine = '';
+
+  for (const word of words) {
+    const nextLine = currentLine ? `${currentLine} ${word}` : word;
+    if (nextLine.length <= maxChars) {
+      currentLine = nextLine;
+      continue;
+    }
+    if (currentLine) {
+      lines.push(currentLine);
+      currentLine = word;
+      continue;
+    }
+    lines.push(word.slice(0, maxChars));
+    currentLine = word.slice(maxChars);
+  }
+
+  if (currentLine) lines.push(currentLine);
+  return lines;
+}
+
+function createLocalFallbackDecisionImage(sceneSpec: DecisionSceneSpec): string {
+  const textLines = [
+    ...wrapSvgText(sceneSpec.title, 46).slice(0, 2),
+    ...wrapSvgText(sceneSpec.action, 52).slice(0, 3),
+    ...wrapSvgText(sceneSpec.setting, 56).slice(0, 3),
+  ].slice(0, 8);
+
+  const renderedText = textLines
+    .map((line, index) => {
+      const y = 248 + index * 42;
+      return `<text x="80" y="${y}" fill="#f3f6fb" font-size="30" font-family="Inter, Arial, sans-serif">${escapeSvgText(line)}</text>`;
+    })
+    .join('');
+
+  const paletteHint = escapeSvgText(sceneSpec.palette.join(' • '));
+  const moodHint = escapeSvgText(`Mood: ${sceneSpec.mood}`);
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-label="Historical illustration fallback">
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="#263f60"/>
+    <stop offset="100%" stop-color="#1b2f48"/>
+  </linearGradient>
+</defs>
+<rect width="1280" height="720" fill="url(#bg)"/>
+<rect x="56" y="56" width="1168" height="608" rx="24" fill="rgba(15,24,38,0.35)" stroke="rgba(255,255,255,0.18)"/>
+<text x="80" y="120" fill="#ffd38c" font-size="24" font-family="Inter, Arial, sans-serif">Jamestown Decision Illustration (local fallback)</text>
+<text x="80" y="168" fill="#c5d3e8" font-size="20" font-family="Inter, Arial, sans-serif">${moodHint}</text>
+<text x="80" y="200" fill="#a9bdd7" font-size="18" font-family="Inter, Arial, sans-serif">${paletteHint}</text>
+${renderedText}
+</svg>`;
+
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 }
 
 function readDecisionImageCache(): Record<string, string> {
@@ -1114,24 +1188,40 @@ export async function generateDecisionImage(input: DecisionImageInput): Promise<
   }
 
   const cacheKey = getDecisionImageCacheKey(input);
+  const sharedCacheKey = getDecisionImageSharedCacheKey(input);
   const imageCache = readDecisionImageCache();
-  const cachedImage = imageCache[cacheKey];
+  const cachedImage = imageCache[cacheKey] ?? imageCache[sharedCacheKey];
   if (cachedImage) {
     return { imageDataUrl: cachedImage, provider: 'cache' };
   }
 
   const geminiApiKey = localStorage.getItem('gemini_api_key') || (import.meta.env.VITE_GEMINI_API_KEY as string || '');
   const xaiApiKey = localStorage.getItem('xai_api_key') || (import.meta.env.VITE_XAI_API_KEY as string || '');
-  if (!geminiApiKey && !xaiApiKey) {
-    return { imageDataUrl: null, error: 'missing-api-key' };
-  }
 
   try {
     const { sceneSpec, source } = await generateSceneSpec(input, selectedOption.text, geminiApiKey);
     const prompt = buildImagePromptFromSceneSpec(sceneSpec);
+    const localFallbackImage = createLocalFallbackDecisionImage(sceneSpec);
+    const persistImage = (imageDataUrl: string) => {
+      writeDecisionImageCache({
+        ...imageCache,
+        [cacheKey]: imageDataUrl,
+        [sharedCacheKey]: imageDataUrl,
+      });
+    };
+
+    if (!geminiApiKey && !xaiApiKey) {
+      persistImage(localFallbackImage);
+      return {
+        imageDataUrl: localFallbackImage,
+        provider: 'local-fallback',
+        sceneSpecSource: source,
+        error: 'missing-api-key',
+      };
+    }
 
     const providers: Array<{
-      provider: Exclude<ImageProvider, 'cache'>;
+      provider: ExternalImageProvider;
       key: string;
       generator: (promptText: string, key: string) => Promise<ProviderAttemptResult>;
     }> = [];
@@ -1161,10 +1251,7 @@ export async function generateDecisionImage(input: DecisionImageInput): Promise<
 
       const result = await entry.generator(prompt, entry.key);
       if (result.imageDataUrl) {
-        writeDecisionImageCache({
-          ...imageCache,
-          [cacheKey]: result.imageDataUrl,
-        });
+        persistImage(result.imageDataUrl);
         return {
           imageDataUrl: result.imageDataUrl,
           provider: entry.provider,
@@ -1181,30 +1268,31 @@ export async function generateDecisionImage(input: DecisionImageInput): Promise<
         sawAccessFailure = true;
       }
     }
-
-    if (sawQuotaFailure) {
-      return {
-        imageDataUrl: null,
-        error: 'image-generation-quota',
-        sceneSpecSource: source,
-      };
-    }
-    if (sawAccessFailure) {
-      return {
-        imageDataUrl: null,
-        error: 'image-model-access-denied',
-        sceneSpecSource: source,
-      };
-    }
+    persistImage(localFallbackImage);
     return {
-      imageDataUrl: null,
-      error: 'image-generation-unavailable',
+      imageDataUrl: localFallbackImage,
+      provider: 'local-fallback',
+      error: sawQuotaFailure
+        ? 'image-generation-quota'
+        : sawAccessFailure
+          ? 'image-model-access-denied'
+          : 'image-generation-unavailable',
       sceneSpecSource: source,
     };
   } catch {
+    const localFallbackImage = createLocalFallbackDecisionImage(
+      createTemplateSceneSpec(input, selectedOption.text),
+    );
+    writeDecisionImageCache({
+      ...imageCache,
+      [cacheKey]: localFallbackImage,
+      [sharedCacheKey]: localFallbackImage,
+    });
     return {
-      imageDataUrl: null,
+      imageDataUrl: localFallbackImage,
+      provider: 'local-fallback',
       error: 'image-generation-unavailable',
+      sceneSpecSource: 'template',
     };
   }
 }
