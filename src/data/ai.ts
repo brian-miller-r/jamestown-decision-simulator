@@ -866,62 +866,94 @@ function escapeSvgText(value: string): string {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 }
-
-function wrapSvgText(value: string, maxChars: number): string[] {
-  const words = value.trim().split(/\s+/).filter(Boolean);
-  if (words.length === 0) return [];
-  const lines: string[] = [];
-  let currentLine = '';
-
-  for (const word of words) {
-    const nextLine = currentLine ? `${currentLine} ${word}` : word;
-    if (nextLine.length <= maxChars) {
-      currentLine = nextLine;
-      continue;
-    }
-    if (currentLine) {
-      lines.push(currentLine);
-      currentLine = word;
-      continue;
-    }
-    lines.push(word.slice(0, maxChars));
-    currentLine = word.slice(maxChars);
-  }
-
-  if (currentLine) lines.push(currentLine);
-  return lines;
+function truncateText(value: string, maxChars: number): string {
+  const trimmed = value.trim();
+  if (trimmed.length <= maxChars) return trimmed;
+  return `${trimmed.slice(0, Math.max(0, maxChars - 1)).trimEnd()}…`;
 }
 
 function createLocalFallbackDecisionImage(sceneSpec: DecisionSceneSpec): string {
-  const textLines = [
-    ...wrapSvgText(sceneSpec.title, 46).slice(0, 2),
-    ...wrapSvgText(sceneSpec.action, 52).slice(0, 3),
-    ...wrapSvgText(sceneSpec.setting, 56).slice(0, 3),
-  ].slice(0, 8);
+  const sceneSeed = `${sceneSpec.title} ${sceneSpec.setting} ${sceneSpec.action}`.toLowerCase();
+  const showShip = /ship|coast|river|bay|port|dock|trade/.test(sceneSeed);
+  const showCrops = /food|farm|crop|corn|beans|squash|tobacco|field/.test(sceneSeed);
+  const showMeeting = /govern|assembly|vote|rules|leader|council/.test(sceneSeed);
+  const showVillage = /powhatan|settler|colon/.test(sceneSeed);
 
-  const renderedText = textLines
-    .map((line, index) => {
-      const y = 248 + index * 42;
-      return `<text x="80" y="${y}" fill="#f3f6fb" font-size="30" font-family="Inter, Arial, sans-serif">${escapeSvgText(line)}</text>`;
-    })
-    .join('');
+  const shipLayer = showShip
+    ? `<g transform="translate(190 390)">
+  <path d="M0 78 L265 78 L218 126 L45 126 Z" fill="#5f3b26"/>
+  <rect x="112" y="-5" width="12" height="83" fill="#704a2f"/>
+  <polygon points="124,8 242,50 124,70" fill="#f5ecd4" opacity="0.9"/>
+  <polygon points="112,14 35,42 112,62" fill="#ece2c6" opacity="0.9"/>
+</g>`
+    : '';
 
-  const paletteHint = escapeSvgText(sceneSpec.palette.join(' • '));
-  const moodHint = escapeSvgText(`Mood: ${sceneSpec.mood}`);
+  const cropLayer = showCrops
+    ? `<g transform="translate(525 515)">
+  <rect x="0" y="0" width="360" height="130" rx="18" fill="#6d8e50" opacity="0.35"/>
+  <path d="M22 112 Q60 76 98 112 T174 112 T250 112 T326 112" fill="none" stroke="#8db066" stroke-width="6"/>
+  <path d="M40 104 Q78 68 116 104 T192 104 T268 104 T344 104" fill="none" stroke="#99be72" stroke-width="5"/>
+</g>`
+    : '';
+
+  const meetingLayer = showMeeting
+    ? `<g transform="translate(375 470)">
+  <ellipse cx="130" cy="56" rx="112" ry="34" fill="#7f5a3b" opacity="0.9"/>
+  <circle cx="36" cy="26" r="16" fill="#dcb997"/>
+  <circle cx="224" cy="26" r="16" fill="#dcb997"/>
+  <circle cx="130" cy="10" r="16" fill="#dcb997"/>
+</g>`
+    : '';
+
+  const villageLayer = showVillage
+    ? `<g transform="translate(942 440)">
+  <circle cx="0" cy="0" r="14" fill="#d8b696"/>
+  <rect x="-9" y="14" width="18" height="34" rx="6" fill="#8d6748"/>
+  <circle cx="38" cy="-4" r="12" fill="#d8b696"/>
+  <rect x="30" y="8" width="16" height="30" rx="6" fill="#8d6748"/>
+  <circle cx="-35" cy="-6" r="12" fill="#d8b696"/>
+  <rect x="-43" y="6" width="16" height="30" rx="6" fill="#8d6748"/>
+</g>`
+    : '';
+
+  const title = escapeSvgText(truncateText(sceneSpec.title, 76));
+  const subtitle = escapeSvgText(truncateText(sceneSpec.mood, 62));
 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-label="Historical illustration fallback">
 <defs>
-  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-    <stop offset="0%" stop-color="#263f60"/>
-    <stop offset="100%" stop-color="#1b2f48"/>
+  <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#6f8fb5"/>
+    <stop offset="100%" stop-color="#2f4a6d"/>
+  </linearGradient>
+  <linearGradient id="ground" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="#587b4f"/>
+    <stop offset="100%" stop-color="#3f5e3a"/>
   </linearGradient>
 </defs>
-<rect width="1280" height="720" fill="url(#bg)"/>
-<rect x="56" y="56" width="1168" height="608" rx="24" fill="rgba(15,24,38,0.35)" stroke="rgba(255,255,255,0.18)"/>
-<text x="80" y="120" fill="#ffd38c" font-size="24" font-family="Inter, Arial, sans-serif">Jamestown Decision Illustration (local fallback)</text>
-<text x="80" y="168" fill="#c5d3e8" font-size="20" font-family="Inter, Arial, sans-serif">${moodHint}</text>
-<text x="80" y="200" fill="#a9bdd7" font-size="18" font-family="Inter, Arial, sans-serif">${paletteHint}</text>
-${renderedText}
+<rect width="1280" height="720" fill="url(#sky)"/>
+<circle cx="1090" cy="112" r="56" fill="#ffd78e" opacity="0.95"/>
+<g fill="#ffffff" opacity="0.35">
+  <ellipse cx="202" cy="132" rx="75" ry="26"/>
+  <ellipse cx="255" cy="128" rx="58" ry="20"/>
+  <ellipse cx="920" cy="164" rx="88" ry="30"/>
+  <ellipse cx="982" cy="158" rx="60" ry="22"/>
+</g>
+<path d="M0 454 Q255 414 510 462 T1020 452 T1280 464 L1280 720 L0 720 Z" fill="url(#ground)"/>
+<path d="M0 500 Q210 470 420 522 T840 518 T1280 492 L1280 640 Q990 628 760 650 T240 662 T0 646 Z" fill="#3e628a" opacity="0.75"/>
+<g transform="translate(828 362)">
+  <rect x="0" y="72" width="270" height="175" rx="10" fill="#7d5538"/>
+  <polygon points="0,72 135,-24 270,72" fill="#66412b"/>
+  <rect x="114" y="152" width="42" height="95" fill="#d9c29b"/>
+  <rect x="58" y="124" width="40" height="34" fill="#f6ebd2"/>
+  <rect x="172" y="124" width="40" height="34" fill="#f6ebd2"/>
+</g>
+${shipLayer}
+${cropLayer}
+${meetingLayer}
+${villageLayer}
+<rect x="54" y="560" width="1172" height="106" rx="18" fill="rgba(10,18,30,0.38)" stroke="rgba(255,255,255,0.12)"/>
+<text x="84" y="608" fill="#ffda99" font-size="28" font-family="Inter, Arial, sans-serif">${title}</text>
+<text x="84" y="640" fill="#d5e1f2" font-size="20" font-family="Inter, Arial, sans-serif">${subtitle}</text>
 </svg>`;
 
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
