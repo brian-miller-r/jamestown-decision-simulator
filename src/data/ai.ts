@@ -753,6 +753,7 @@ export function generateSmartComparison(
 const IMAGE_SCENE_SPEC_MODELS = ['gemini-3.5-flash', 'gemini-2.5-flash'] as const;
 const IMAGE_GENERATION_MODELS = ['gemini-3.1-flash-image', 'gemini-2.5-flash-image'] as const;
 const XAI_IMAGE_MODEL = 'grok-imagine-image-quality';
+const XAI_LEGACY_IMAGE_MODEL = 'grok-imagine-image';
 const IMAGE_CACHE_KEY = 'jamestown_decision_image_cache_v2';
 const IMAGE_QUOTA_COOLDOWN_MS = 5 * 60 * 1000;
 
@@ -782,6 +783,8 @@ interface DecisionSceneSpec {
 interface ProviderAttemptResult {
   imageDataUrl: string | null;
   failure?: 'quota' | 'access-denied' | 'unavailable';
+  statusCode?: number;
+  detail?: string;
 }
 
 interface CandidatePart {
@@ -801,6 +804,7 @@ export interface DecisionImageResult {
   error?: DecisionImageFailure;
   provider?: ImageProvider;
   sceneSpecSource?: SceneSpecSource;
+  debugMessage?: string;
 }
 
 function getQuotaCooldownStorageKey(provider: ExternalImageProvider): string {
@@ -822,6 +826,175 @@ function markProviderQuotaCooldown(provider: ExternalImageProvider) {
     getQuotaCooldownStorageKey(provider),
     String(Date.now() + IMAGE_QUOTA_COOLDOWN_MS),
   );
+}
+
+function truncateDebugText(value: string, maxChars = 220): string {
+  const normalized = value.replace(/\s+/g, ' ').trim();
+  if (normalized.length <= maxChars) return normalized;
+  return `${normalized.slice(0, Math.max(0, maxChars - 1)).trimEnd()}…`;
+}
+
+function normalizeApiKey(value: string): string {
+  const trimmed = value.trim();
+  if (trimmed.length >= 2) {
+    const first = trimmed[0];
+    const last = trimmed[trimmed.length - 1];
+    const isWrappedQuote =
+      (first === '"' && last === '"') ||
+      (first === '\'' && last === '\'') ||
+      (first === '`' && last === '`');
+    if (isWrappedQuote) {
+      return trimmed.slice(1, -1).trim();
+    }
+  }
+  return trimmed;
+}
+
+function unknownErrorToDebugText(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return String(error);
+  }
+}
+
+function parseProviderErrorDetail(bodyText: string): string | undefined {
+  if (!bodyText.trim()) return undefined;
+  try {
+    const parsed = JSON.parse(bodyText) as Record<string, unknown>;
+    const root = parsed.error && typeof parsed.error === 'object'
+      ? parsed.error as Record<string, unknown>
+      : parsed;
+    const parts = [
+      root.code,
+      root.type,
+      root.reason,
+      root.message,
+      root.detail,
+      root.error,
+    ]
+      .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+      .map(value => value.trim());
+    if (parts.length > 0) {
+      return truncateDebugText(Array.from(new Set(parts)).join(' | '));
+    }
+  } catch {
+    // Non-JSON response; fall through to raw text.
+  }
+  return truncateDebugText(bodyText);
+}
+
+function formatAttemptDebug(provider: ExternalImageProvider, result: ProviderAttemptResult): string {
+  if (result.imageDataUrl) {
+    return `${provider}: success`;
+  }
+  const chunks = [`${provider}: ${result.failure ?? 'unavailable'}`];
+  if (typeof result.statusCode === 'number') {
+    chunks.push(`HTTP ${result.statusCode}`);
+  }
+  if (result.detail) {
+    chunks.push(result.detail);
+  }
+  return truncateDebugText(chunks.join(' — '), 320);
+}
+
+function extractXaiAclStrings(payload: Record<string, unknown>): string[] {
+  const fromAcls = Array.isArray(payload.acls) ? payload.acls : [];
+  const fromAclStrings = Array.isArray(payload.acl_strings) ? payload.acl_strings : [];
+  return [...fromAcls, ...fromAclStrings]
+    .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+    .map(value => value.trim());
+}
+
+function hasXaiAcl(acls: string[], expected: string): boolean {
+  return acls.includes(expected);
+}
+
+function hasImageEndpointAcl(acls: string[]): boolean {
+  return (
+    hasXaiAcl(acls, 'api-key:endpoint:*') ||
+    hasXaiAcl(acls, 'api-key:endpoint:image')
+  );
+}
+
+function hasImageModelAcl(acls: string[]): boolean {
+  return (
+    hasXaiAcl(acls, 'api-key:model:*') ||
+    hasXaiAcl(acls, `api-key:model:${XAI_IMAGE_MODEL}`) ||
+    hasXaiAcl(acls, `api-key:model:${XAI_LEGACY_IMAGE_MODEL}`)
+  );
+}
+
+async function inspectXaiApiKey(apiKey: string): Promise<{
+  ok: boolean;
+  failure?: 'access-denied' | 'unavailable';
+  statusCode?: number;
+  detail?: string;
+}> {
+  try {
+    const response = await fetch('https://api.x.ai/v1/api-key', {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+      },
+    });
+    const responseBody = await response.text();
+    if (!response.ok) {
+      const detail = parseProviderErrorDetail(responseBody);
+      if (isAccessFailure(response.status, responseBody)) {
+        return {
+          ok: false,
+          failure: 'access-denied',
+          statusCode: response.status,
+          detail: truncateDebugText(`xAI key check failed: ${detail ?? `HTTP ${response.status}`}`, 320),
+        };
+      }
+      return {
+        ok: false,
+        failure: 'unavailable',
+        statusCode: response.status,
+        detail: truncateDebugText(`xAI key check unavailable: ${detail ?? `HTTP ${response.status}`}`, 320),
+      };
+    }
+
+    const payload = responseBody
+      ? JSON.parse(responseBody) as Record<string, unknown>
+      : {};
+    const acls = extractXaiAclStrings(payload);
+    const apiKeyBlocked = payload.api_key_blocked === true;
+    const apiKeyDisabled = payload.api_key_disabled === true;
+    const teamBlocked = payload.team_blocked === true;
+    if (apiKeyBlocked || apiKeyDisabled || teamBlocked) {
+      return {
+        ok: false,
+        failure: 'access-denied',
+        detail: 'xAI API key is blocked/disabled at key or team level.',
+      };
+    }
+    if (acls.length > 0) {
+      const hasEndpoint = hasImageEndpointAcl(acls);
+      const hasModel = hasImageModelAcl(acls);
+      if (!hasEndpoint || !hasModel) {
+        return {
+          ok: false,
+          failure: 'access-denied',
+          detail: truncateDebugText(
+            `xAI key ACL missing image permission. Need api-key:endpoint:image (or *) and api-key:model:${XAI_IMAGE_MODEL} (or *).`,
+            320,
+          ),
+        };
+      }
+    }
+    return { ok: true };
+  } catch (error) {
+    return {
+      ok: false,
+      failure: 'unavailable',
+      detail: truncateDebugText(`xAI key check network error: ${unknownErrorToDebugText(error)}`, 320),
+    };
+  }
 }
 
 function extractImageFromParts(parts: CandidatePart[]): { mimeType: string; data: string } | null {
@@ -975,7 +1148,11 @@ function writeDecisionImageCache(cache: Record<string, string>) {
 }
 
 function isLocalFallbackImageDataUrl(dataUrl: string): boolean {
-  return dataUrl.startsWith('data:image/svg+xml') && dataUrl.includes('local%20fallback');
+  const lower = dataUrl.toLowerCase();
+  return (
+    lower.startsWith('data:image/svg+xml') &&
+    (lower.includes('local%20fallback') || lower.includes('historical%20illustration%20fallback') || lower.includes('fallback'))
+  );
 }
 
 function sanitizeStringList(value: unknown, fallback: string[]): string[] {
@@ -1118,94 +1295,233 @@ function isAccessFailure(status: number, bodyText: string): boolean {
   return (
     status === 401 ||
     status === 403 ||
+    (status === 400 &&
+      (lower.includes('invalid api key') ||
+        lower.includes('invalid_api_key') ||
+        lower.includes('api key is invalid') ||
+        lower.includes('api_key_invalid'))) ||
     lower.includes('permission_denied') ||
     lower.includes('access denied') ||
-    lower.includes('unauthorized')
+    lower.includes('unauthorized') ||
+    lower.includes('forbidden') ||
+    (lower.includes('api key') && lower.includes('acl'))
   );
 }
 
+
 async function generateImageWithGemini(prompt: string, apiKey: string): Promise<ProviderAttemptResult> {
+  let lastFailure: ProviderAttemptResult = { imageDataUrl: null, failure: 'unavailable' };
   for (const modelName of IMAGE_GENERATION_MODELS) {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          responseModalities: ['IMAGE'],
-        },
-      }),
-    });
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            responseModalities: ['IMAGE'],
+          },
+        }),
+      });
+      const responseBody = await response.text();
 
-    if (!response.ok) {
-      const errorBody = await response.text();
-      if (isQuotaFailure(response.status, errorBody)) {
-        return { imageDataUrl: null, failure: 'quota' };
-      }
-      if (isAccessFailure(response.status, errorBody)) {
-        return { imageDataUrl: null, failure: 'access-denied' };
-      }
-      continue;
-    }
-
-    const payload = await response.json() as {
-      candidates?: Array<{
-        content?: {
-          parts?: CandidatePart[];
+      if (!response.ok) {
+        const detail = parseProviderErrorDetail(responseBody);
+        if (isQuotaFailure(response.status, responseBody)) {
+          return { imageDataUrl: null, failure: 'quota', statusCode: response.status, detail };
+        }
+        if (isAccessFailure(response.status, responseBody)) {
+          return {
+            imageDataUrl: null,
+            failure: 'access-denied',
+            statusCode: response.status,
+            detail,
+          };
+        }
+        lastFailure = {
+          imageDataUrl: null,
+          failure: 'unavailable',
+          statusCode: response.status,
+          detail,
         };
-      }>;
-    };
-    const candidates = payload.candidates ?? [];
-    for (const candidate of candidates) {
-      const parts = candidate.content?.parts ?? [];
-      const image = extractImageFromParts(parts);
-      if (!image) continue;
-      return { imageDataUrl: `data:${image.mimeType};base64,${image.data}` };
+        continue;
+      }
+
+      const payload = responseBody
+        ? JSON.parse(responseBody) as {
+            candidates?: Array<{
+              content?: {
+                parts?: CandidatePart[];
+              };
+            }>;
+          }
+        : {};
+      const candidates = payload.candidates ?? [];
+      for (const candidate of candidates) {
+        const parts = candidate.content?.parts ?? [];
+        const image = extractImageFromParts(parts);
+        if (!image) continue;
+        return { imageDataUrl: `data:${image.mimeType};base64,${image.data}` };
+      }
+
+      lastFailure = { imageDataUrl: null, failure: 'unavailable', detail: 'No image returned by Gemini.' };
+    } catch (error) {
+      return {
+        imageDataUrl: null,
+        failure: 'unavailable',
+        detail: truncateDebugText(`Network error: ${unknownErrorToDebugText(error)}`),
+      };
     }
   }
 
-  return { imageDataUrl: null, failure: 'unavailable' };
+  return lastFailure;
 }
 
 async function generateImageWithXai(prompt: string, apiKey: string): Promise<ProviderAttemptResult> {
-  const response = await fetch('https://api.x.ai/v1/images/generations', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
+  const keyInspection = await inspectXaiApiKey(apiKey);
+  if (!keyInspection.ok && keyInspection.failure === 'access-denied') {
+    return {
+      imageDataUrl: null,
+      failure: 'access-denied',
+      statusCode: keyInspection.statusCode,
+      detail: keyInspection.detail,
+    };
+  }
+  const keyInspectionDetail = !keyInspection.ok ? keyInspection.detail : null;
+  const attempts: Array<{
+    label: string;
+    body: Record<string, unknown>;
+  }> = [
+    {
+      label: 'quality-optimized',
+      body: {
+        model: XAI_IMAGE_MODEL,
+        prompt,
+        n: 1,
+        aspect_ratio: '16:9',
+        resolution: '1k',
+        response_format: 'b64_json',
+      },
     },
-    body: JSON.stringify({
-      model: XAI_IMAGE_MODEL,
-      prompt,
-      n: 1,
-      size: '1024x1024',
-      response_format: 'b64_json',
-    }),
-  });
+    {
+      label: 'quality-default-url',
+      body: {
+        model: XAI_IMAGE_MODEL,
+        prompt,
+      },
+    },
+    {
+      label: 'legacy-default-url',
+      body: {
+        model: XAI_LEGACY_IMAGE_MODEL,
+        prompt,
+      },
+    },
+    {
+      label: 'api-default-model',
+      body: {
+        prompt,
+      },
+    },
+  ];
 
-  if (!response.ok) {
-    const errorBody = await response.text();
-    if (isQuotaFailure(response.status, errorBody)) {
-      return { imageDataUrl: null, failure: 'quota' };
-    }
-    if (isAccessFailure(response.status, errorBody)) {
-      return { imageDataUrl: null, failure: 'access-denied' };
-    }
-    return { imageDataUrl: null, failure: 'unavailable' };
-  }
-
-  const payload = await response.json() as {
-    data?: Array<{ b64_json?: string; url?: string }>;
+  let lastFailure: ProviderAttemptResult = {
+    imageDataUrl: null,
+    failure: 'unavailable',
+    detail: 'xAI request failed before producing an image.',
   };
-  const image = payload.data?.[0];
-  if (image?.b64_json) {
-    return { imageDataUrl: `data:image/png;base64,${image.b64_json}` };
+
+  for (const attempt of attempts) {
+    try {
+      const response = await fetch('https://api.x.ai/v1/images/generations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey.trim()}`,
+        },
+        body: JSON.stringify(attempt.body),
+      });
+      const responseBody = await response.text();
+
+      if (!response.ok) {
+        const detail = parseProviderErrorDetail(responseBody);
+        const withKeyInspectionDetail = keyInspectionDetail
+          ? truncateDebugText(`${keyInspectionDetail} | ${detail ?? `HTTP ${response.status}`}`, 320)
+          : detail;
+        if (isQuotaFailure(response.status, responseBody)) {
+          return {
+            imageDataUrl: null,
+            failure: 'quota',
+            statusCode: response.status,
+            detail: truncateDebugText(`[${attempt.label}] ${withKeyInspectionDetail ?? 'quota exceeded'}`, 320),
+          };
+        }
+        if (isAccessFailure(response.status, responseBody)) {
+          return {
+            imageDataUrl: null,
+            failure: 'access-denied',
+            statusCode: response.status,
+            detail: truncateDebugText(`[${attempt.label}] ${withKeyInspectionDetail ?? 'access denied'}`, 320),
+          };
+        }
+
+        lastFailure = {
+          imageDataUrl: null,
+          failure: 'unavailable',
+          statusCode: response.status,
+          detail: truncateDebugText(
+            `[${attempt.label}] ${withKeyInspectionDetail ?? `HTTP ${response.status} from xAI`}`,
+            320,
+          ),
+        };
+        if (response.status === 400 || response.status === 422) {
+          continue;
+        }
+        return lastFailure;
+      }
+
+      const payload = responseBody
+        ? JSON.parse(responseBody) as {
+            block_reason?: string | null;
+            data?: Array<{ b64_json?: string; url?: string; mime_type?: string }>;
+          }
+        : {};
+      const image = payload.data?.[0];
+      if (image?.b64_json) {
+        const mimeType = image.mime_type?.trim() || 'image/png';
+        return { imageDataUrl: `data:${mimeType};base64,${image.b64_json}` };
+      }
+      if (image?.url) {
+        return { imageDataUrl: image.url };
+      }
+
+      const blockReason = typeof payload.block_reason === 'string' && payload.block_reason.trim()
+        ? payload.block_reason.trim()
+        : null;
+      lastFailure = {
+        imageDataUrl: null,
+        failure: 'unavailable',
+        detail: truncateDebugText(
+          blockReason
+            ? `[${attempt.label}] Request blocked by model safety filters: ${blockReason}`
+            : `[${attempt.label}] xAI returned no image data.`,
+          320,
+        ),
+      };
+    } catch (error) {
+      lastFailure = {
+        imageDataUrl: null,
+        failure: 'unavailable',
+        detail: truncateDebugText(
+          `[${attempt.label}] ${keyInspectionDetail ? `${keyInspectionDetail} | ` : ''}Network error: ${unknownErrorToDebugText(error)}`,
+          320,
+        ),
+      };
+    }
   }
-  if (image?.url) {
-    return { imageDataUrl: image.url };
-  }
-  return { imageDataUrl: null, failure: 'unavailable' };
+
+  return lastFailure;
 }
 
 /**
@@ -1218,8 +1534,12 @@ export async function generateDecisionImage(input: DecisionImageInput): Promise<
   if (!selectedOption) {
     return { imageDataUrl: null, error: 'no-prompt' };
   }
-  const geminiApiKey = localStorage.getItem('gemini_api_key') || (import.meta.env.VITE_GEMINI_API_KEY as string || '');
-  const xaiApiKey = localStorage.getItem('xai_api_key') || (import.meta.env.VITE_XAI_API_KEY as string || '');
+  const geminiApiKey = normalizeApiKey(
+    localStorage.getItem('gemini_api_key') || (import.meta.env.VITE_GEMINI_API_KEY as string || ''),
+  );
+  const xaiApiKey = normalizeApiKey(
+    localStorage.getItem('xai_api_key') || (import.meta.env.VITE_XAI_API_KEY as string || ''),
+  );
 
   const cacheKey = getDecisionImageCacheKey(input);
   const imageCache = readDecisionImageCache();
@@ -1236,6 +1556,7 @@ export async function generateDecisionImage(input: DecisionImageInput): Promise<
     const { sceneSpec, source } = await generateSceneSpec(input, selectedOption.text, geminiApiKey);
     const prompt = buildImagePromptFromSceneSpec(sceneSpec);
     const localFallbackImage = createLocalFallbackDecisionImage(sceneSpec);
+    const attemptDebug: string[] = [];
     const persistImage = (imageDataUrl: string) => {
       writeDecisionImageCache({
         ...imageCache,
@@ -1250,6 +1571,7 @@ export async function generateDecisionImage(input: DecisionImageInput): Promise<
         provider: 'local-fallback',
         sceneSpecSource: source,
         error: 'missing-api-key',
+        debugMessage: 'No Gemini or xAI API key configured.',
       };
     }
 
@@ -1275,23 +1597,28 @@ export async function generateDecisionImage(input: DecisionImageInput): Promise<
 
     let sawQuotaFailure = false;
     let sawAccessFailure = false;
+    let sawNonQuotaFailure = false;
 
     for (const entry of providers) {
       if (isProviderInQuotaCooldown(entry.provider)) {
         sawQuotaFailure = true;
+        attemptDebug.push(`${entry.provider}: skipped — quota cooldown active`);
         continue;
       }
 
       const result = await entry.generator(prompt, entry.key);
       if (result.imageDataUrl) {
         persistImage(result.imageDataUrl);
+        attemptDebug.push(formatAttemptDebug(entry.provider, result));
         return {
           imageDataUrl: result.imageDataUrl,
           provider: entry.provider,
           sceneSpecSource: source,
+          debugMessage: attemptDebug.join(' | '),
         };
       }
 
+      attemptDebug.push(formatAttemptDebug(entry.provider, result));
       if (result.failure === 'quota') {
         markProviderQuotaCooldown(entry.provider);
         sawQuotaFailure = true;
@@ -1300,19 +1627,26 @@ export async function generateDecisionImage(input: DecisionImageInput): Promise<
       if (result.failure === 'access-denied') {
         sawAccessFailure = true;
       }
+      if (result.failure) {
+        sawNonQuotaFailure = true;
+      }
     }
     persistImage(localFallbackImage);
+    const debugMessage = attemptDebug.length > 0
+      ? attemptDebug.join(' | ')
+      : 'No image provider attempts were made.';
     return {
       imageDataUrl: localFallbackImage,
       provider: 'local-fallback',
-      error: sawQuotaFailure
-        ? 'image-generation-quota'
-        : sawAccessFailure
-          ? 'image-model-access-denied'
+      error: sawAccessFailure
+        ? 'image-model-access-denied'
+        : sawQuotaFailure && !sawNonQuotaFailure
+          ? 'image-generation-quota'
           : 'image-generation-unavailable',
       sceneSpecSource: source,
+      debugMessage,
     };
-  } catch {
+  } catch (error) {
     const localFallbackImage = createLocalFallbackDecisionImage(
       createTemplateSceneSpec(input, selectedOption.text),
     );
@@ -1325,6 +1659,7 @@ export async function generateDecisionImage(input: DecisionImageInput): Promise<
       provider: 'local-fallback',
       error: 'image-generation-unavailable',
       sceneSpecSource: 'template',
+      debugMessage: truncateDebugText(`Image pipeline error: ${unknownErrorToDebugText(error)}`),
     };
   }
 }

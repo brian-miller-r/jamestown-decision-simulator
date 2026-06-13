@@ -210,6 +210,7 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
   const [decisionImageUrl, setDecisionImageUrl] = useState<string | null>(null);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
+  const [imageDebugMessage, setImageDebugMessage] = useState<string | null>(null);
   const [imageProviderLabel, setImageProviderLabel] = useState<string | null>(null);
   const imageRequestIdRef = useRef(0);
 
@@ -565,6 +566,11 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
         : 'Gemini request failed, so this response used local fallback analysis.'
       : null;
     const friendlyImageError = imageErrorMessage(imageError);
+    const localFallbackDebugMessage =
+      imageProviderLabel === 'Local fallback'
+        ? imageDebugMessage ?? 'No provider detail returned. Open Network → api.x.ai request → Response to inspect the exact error body.'
+        : imageDebugMessage;
+    const showImageDebug = (import.meta.env.DEV || localStorage.getItem('jamestown_image_debug') === '1') || imageProviderLabel === 'Local fallback';
     const lastDecision = decisions[decisions.length - 1];
     const chosenOption = node.options.find(o => o.id === lastDecision?.optionId);
 
@@ -638,9 +644,29 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
                 {imageProviderLabel && (
                   <p className="text-navy-200 text-[11px]">Illustration source: {imageProviderLabel}</p>
                 )}
+                {friendlyImageError && imageProviderLabel === 'Local fallback' && (
+                  <p className="text-red-200 text-[11px] mt-1">{friendlyImageError}</p>
+                )}
+                {showImageDebug && localFallbackDebugMessage && (
+                  <p className="text-amber-100 text-[10px] mt-1 break-words">{localFallbackDebugMessage}</p>
+                )}
               </div>
             )}
           </div>
+
+          {imageProviderLabel === 'Local fallback' && (friendlyImageError || localFallbackDebugMessage) && (
+            <div className="card border-l-4 border-l-red-300 bg-red-50/50">
+              <p className="text-xs font-bold uppercase tracking-wide text-red-700 mb-1">
+                Image fallback diagnostics
+              </p>
+              {friendlyImageError && (
+                <p className="text-sm text-red-800 mb-1">{friendlyImageError}</p>
+              )}
+              {localFallbackDebugMessage && (
+                <p className="text-xs text-red-900 break-words">{localFallbackDebugMessage}</p>
+              )}
+            </div>
+          )}
 
           {/* Primary coaching */}
           <div className={`card border-l-4 ${hasMisconception ? 'border-l-amber-400' : surfaceCorrect ? 'border-l-blue-400' : 'border-l-emerald-500'}`}>
@@ -741,6 +767,7 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
     setDecisionImageUrl(null);
     setIsGeneratingImage(true);
     setImageError(null);
+    setImageDebugMessage(null);
     setImageProviderLabel(null);
     const imageRequestId = imageRequestIdRef.current + 1;
     imageRequestIdRef.current = imageRequestId;
@@ -788,6 +815,14 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
     }).then(result => {
       if (imageRequestIdRef.current !== imageRequestId) return;
       setIsGeneratingImage(false);
+      setImageError(result.error ?? null);
+      setImageDebugMessage(
+        result.debugMessage ?? (
+          result.provider === 'local-fallback'
+            ? 'No provider detail returned. Open Network → api.x.ai request → Response to inspect the exact error body.'
+            : null
+        ),
+      );
       if (result.imageDataUrl) {
         setDecisionImageUrl(result.imageDataUrl);
         const providerLabel =
@@ -797,18 +832,25 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
           : result.provider === 'local-fallback' ? 'Local fallback'
           : null;
         setImageProviderLabel(providerLabel);
-        setImageError(null);
+        if (result.provider === 'local-fallback') {
+          console.warn('[Image] Local fallback used:', {
+            error: result.error ?? 'unknown',
+            debug: result.debugMessage ?? 'No provider detail returned.',
+          });
+        }
       } else {
         setDecisionImageUrl(localFallbackImageUrl);
         setImageProviderLabel('Local fallback');
-        setImageError(null);
+        setImageError(result.error ?? 'image-generation-unavailable');
       }
-    }).catch(() => {
+    }).catch((error) => {
       if (imageRequestIdRef.current !== imageRequestId) return;
       setIsGeneratingImage(false);
       setDecisionImageUrl(localFallbackImageUrl);
       setImageProviderLabel('Local fallback');
-      setImageError(null);
+      setImageError('image-generation-unavailable');
+      setImageDebugMessage('Image pipeline request failed before provider response.');
+      console.error('[Image] Unexpected image request failure:', error);
     });
 
     try {
@@ -836,6 +878,7 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
       setDecisionImageUrl(null);
       setIsGeneratingImage(false);
       setImageError(null);
+      setImageDebugMessage(null);
       setImageProviderLabel(null);
       setPhase('decide');
     } else {
