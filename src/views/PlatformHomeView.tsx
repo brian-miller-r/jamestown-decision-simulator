@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
-import { ArrowRight, BarChart3, BookOpen, Brain, Image, Landmark } from 'lucide-react';
+import { ArrowRight, BarChart3, BookOpen, Brain, ChevronRight, Image } from 'lucide-react';
 import type { View } from '../data/types';
 interface UseCaseTile {
   title: string;
@@ -59,10 +59,18 @@ export default function PlatformHomeView({ onNavigate }: { onNavigate: (v: View)
         <div className="absolute -bottom-24 -right-16 w-[360px] h-[360px] bg-violet-200/35 blur-[100px] rounded-full pointer-events-none" />
         <div className="max-w-5xl mx-auto relative z-10">
           <div className="text-center mb-14 md:mb-16">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-zinc-300 bg-white/80 text-sm text-zinc-700 mb-8 backdrop-blur-sm shadow-sm">
-              <Landmark className="w-4 h-4 text-amber-600" />
-              Virginia Studies SOL
-            </div>
+            <button
+              type="button"
+              onClick={() => onNavigate({ kind: 'simulator' })}
+              className="group inline-flex items-center gap-3 text-zinc-600 hover:text-zinc-800 mb-8 transition-colors"
+              aria-label="Open Virginia Studies SOL simulator"
+            >
+              <span className="inline-flex items-center rounded-full border border-orange-500 bg-white px-3 py-0.5 text-xs font-medium text-orange-600">
+                New
+              </span>
+              <span className="text-base md:text-lg font-medium">Virginia Studies SOL</span>
+              <ChevronRight className="w-4 h-4 text-zinc-500 transition-transform group-hover:translate-x-0.5" />
+            </button>
             <p className="text-sm font-semibold uppercase tracking-[0.22em] text-zinc-500 mb-4">
               SOLTutor.AI
             </p>
