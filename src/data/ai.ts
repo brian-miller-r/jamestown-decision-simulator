@@ -854,10 +854,6 @@ function getDecisionImageCacheKey(input: DecisionImageInput): string {
   return `${input.node.id}:${input.optionId}:${reasoningHash}`;
 }
 
-function getDecisionImageSharedCacheKey(input: DecisionImageInput): string {
-  return `${input.node.id}:${input.optionId}:shared`;
-}
-
 function escapeSvgText(value: string): string {
   return value
     .replace(/&/g, '&amp;')
@@ -976,6 +972,10 @@ function writeDecisionImageCache(cache: Record<string, string>) {
   } catch {
     // Ignore cache write failures (storage limits/private mode)
   }
+}
+
+function isLocalFallbackImageDataUrl(dataUrl: string): boolean {
+  return dataUrl.startsWith('data:image/svg+xml') && dataUrl.includes('local%20fallback');
 }
 
 function sanitizeStringList(value: unknown, fallback: string[]): string[] {
@@ -1211,24 +1211,26 @@ async function generateImageWithXai(prompt: string, apiKey: string): Promise<Pro
 /**
  * Two-step decision image pipeline:
  * 1) Build a scene spec from decision + student reasoning (Gemini text model with local template fallback).
- * 2) Render image with provider fallback (Gemini image model, then xAI if configured).
+ * 2) Render image with provider fallback (xAI first, then Gemini).
  */
 export async function generateDecisionImage(input: DecisionImageInput): Promise<DecisionImageResult> {
   const selectedOption = input.node.options.find(option => option.id === input.optionId);
   if (!selectedOption) {
     return { imageDataUrl: null, error: 'no-prompt' };
   }
-
-  const cacheKey = getDecisionImageCacheKey(input);
-  const sharedCacheKey = getDecisionImageSharedCacheKey(input);
-  const imageCache = readDecisionImageCache();
-  const cachedImage = imageCache[cacheKey] ?? imageCache[sharedCacheKey];
-  if (cachedImage) {
-    return { imageDataUrl: cachedImage, provider: 'cache' };
-  }
-
   const geminiApiKey = localStorage.getItem('gemini_api_key') || (import.meta.env.VITE_GEMINI_API_KEY as string || '');
   const xaiApiKey = localStorage.getItem('xai_api_key') || (import.meta.env.VITE_XAI_API_KEY as string || '');
+
+  const cacheKey = getDecisionImageCacheKey(input);
+  const imageCache = readDecisionImageCache();
+  const cachedImage = imageCache[cacheKey];
+  if (cachedImage) {
+    const hasLiveProvider = Boolean(geminiApiKey || xaiApiKey);
+    const isStaleLocalFallback = hasLiveProvider && isLocalFallbackImageDataUrl(cachedImage);
+    if (!isStaleLocalFallback) {
+      return { imageDataUrl: cachedImage, provider: 'cache' };
+    }
+  }
 
   try {
     const { sceneSpec, source } = await generateSceneSpec(input, selectedOption.text, geminiApiKey);
@@ -1238,7 +1240,6 @@ export async function generateDecisionImage(input: DecisionImageInput): Promise<
       writeDecisionImageCache({
         ...imageCache,
         [cacheKey]: imageDataUrl,
-        [sharedCacheKey]: imageDataUrl,
       });
     };
 
@@ -1257,18 +1258,18 @@ export async function generateDecisionImage(input: DecisionImageInput): Promise<
       key: string;
       generator: (promptText: string, key: string) => Promise<ProviderAttemptResult>;
     }> = [];
-    if (geminiApiKey) {
-      providers.push({
-        provider: 'gemini',
-        key: geminiApiKey,
-        generator: generateImageWithGemini,
-      });
-    }
     if (xaiApiKey) {
       providers.push({
         provider: 'xai',
         key: xaiApiKey,
         generator: generateImageWithXai,
+      });
+    }
+    if (geminiApiKey) {
+      providers.push({
+        provider: 'gemini',
+        key: geminiApiKey,
+        generator: generateImageWithGemini,
       });
     }
 
@@ -1318,7 +1319,6 @@ export async function generateDecisionImage(input: DecisionImageInput): Promise<
     writeDecisionImageCache({
       ...imageCache,
       [cacheKey]: localFallbackImage,
-      [sharedCacheKey]: localFallbackImage,
     });
     return {
       imageDataUrl: localFallbackImage,
