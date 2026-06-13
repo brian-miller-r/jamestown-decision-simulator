@@ -43,7 +43,7 @@ export default function PasswordGate({ children }: PasswordGateProps) {
   if (unlocked) return <>{children}</>;
 
   return (
-    <div className="min-h-screen bg-navy-50 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-zinc-50 flex items-center justify-center px-4">
       {/* Subtle background pattern */}
       <div
         aria-hidden="true"
@@ -59,20 +59,20 @@ export default function PasswordGate({ children }: PasswordGateProps) {
         style={{ animation: shaking ? 'shake 0.5s ease-in-out' : undefined }}
       >
         {/* Card */}
-        <div className="bg-white rounded-2xl shadow-2xl border border-navy-100 px-8 py-10">
+        <div className="bg-zinc-900 rounded-2xl shadow-2xl border border-zinc-100 px-8 py-10">
           {/* Logo */}
           <div className="flex flex-col items-center mb-8">
-            <div className="w-14 h-14 rounded-2xl bg-navy-800 text-white flex items-center justify-center shadow-lg mb-4">
+            <div className="w-14 h-14 rounded-2xl bg-zinc-800 text-white flex items-center justify-center shadow-lg mb-4">
               <Ship className="w-7 h-7" />
             </div>
-            <h1 className="text-xl font-bold text-navy-900 tracking-tight">Jamestown Simulator</h1>
-            <p className="text-xs text-navy-500 mt-1">Classroom Decision Experience</p>
+            <h1 className="text-xl font-bold text-zinc-100 tracking-tight">Jamestown Simulator</h1>
+            <p className="text-xs text-zinc-500 mt-1">Classroom Decision Experience</p>
           </div>
 
           {/* Lock icon + label */}
           <div className="flex items-center gap-2 mb-5">
-            <Lock className="w-4 h-4 text-navy-400 shrink-0" />
-            <p className="text-sm font-medium text-navy-700">Enter the access password to continue</p>
+            <Lock className="w-4 h-4 text-zinc-400 shrink-0" />
+            <p className="text-sm font-medium text-zinc-300">Enter the access password to continue</p>
           </div>
 
           <form onSubmit={handleSubmit} noValidate>
@@ -91,13 +91,13 @@ export default function PasswordGate({ children }: PasswordGateProps) {
                 className={`w-full pr-10 pl-4 py-3 rounded-xl border text-sm font-medium transition-all duration-200 outline-none focus:ring-2 ${
                   error
                     ? 'border-red-400 focus:ring-red-200 bg-red-50 text-red-900 placeholder-red-300'
-                    : 'border-navy-200 focus:ring-navy-200 focus:border-navy-400 bg-navy-50 text-navy-900 placeholder-navy-400'
+                    : 'border-zinc-200 focus:ring-zinc-200 focus:border-zinc-400 bg-zinc-50 text-zinc-100 placeholder-zinc-400'
                 }`}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-navy-400 hover:text-navy-600 transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-400 transition-colors"
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -112,14 +112,14 @@ export default function PasswordGate({ children }: PasswordGateProps) {
 
             <button
               type="submit"
-              className="w-full mt-3 bg-navy-800 hover:bg-navy-700 active:scale-[0.98] text-white font-semibold py-3 rounded-xl transition-all duration-200 shadow-md hover:shadow-lg text-sm"
+              className="w-full mt-3 bg-zinc-800 hover:bg-zinc-700 active:scale-[0.98] text-white font-semibold py-3 rounded-xl transition-all duration-200 shadow-md hover:shadow-lg text-sm"
             >
               Unlock
             </button>
           </form>
         </div>
 
-        <p className="text-center text-xs text-navy-400 mt-5">
+        <p className="text-center text-xs text-zinc-400 mt-5">
           Contact your teacher for the password.
         </p>
       </div>

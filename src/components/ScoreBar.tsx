@@ -16,8 +16,8 @@ export default function ScoreBar({ scores, showValues = true }: { scores: Scores
         return (
           <div key={key}>
             <div className="flex justify-between text-sm mb-1">
-              <span className="font-medium text-navy-700">{label}</span>
-              {showValues && <span className="text-navy-500 font-semibold">{val}</span>}
+              <span className="font-medium text-zinc-300">{label}</span>
+              {showValues && <span className="text-zinc-500 font-semibold">{val}</span>}
             </div>
             <div className="score-bar">
               <div className={`score-fill ${color}`} style={{ width: `${val}%` }} />

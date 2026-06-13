@@ -19,7 +19,7 @@ export default function TeacherDashboardView({ sessionId, onNavigate }: Props) {
     return (
       <div className="min-h-screen flex items-center justify-center px-6">
         <div className="card text-center max-w-md">
-          <h2 className="text-xl font-bold text-navy-800 mb-2">Session Not Found</h2>
+          <h2 className="text-xl font-bold text-zinc-200 mb-2">Session Not Found</h2>
           <button className="btn-primary" onClick={() => onNavigate({ kind: 'home' })}>Back to Home</button>
         </div>
       </div>
@@ -96,12 +96,12 @@ export default function TeacherDashboardView({ sessionId, onNavigate }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-navy-50">
-      <header className="bg-navy-900 text-white">
+    <div className="min-h-screen bg-zinc-50">
+      <header className="bg-zinc-900 text-white">
         <div className="max-w-5xl mx-auto px-6 py-6">
           <div className="flex items-center justify-between">
             <div>
-              <div className="flex items-center gap-2 text-navy-300 text-sm mb-1">
+              <div className="flex items-center gap-2 text-zinc-300 text-sm mb-1">
                 <span>Session {session.code}</span>
                 <span>&middot;</span>
                 <span>{session.standard}</span>
@@ -115,14 +115,14 @@ export default function TeacherDashboardView({ sessionId, onNavigate }: Props) {
             <div className="flex items-center gap-3">
               <button
                 onClick={handleResetDemo}
-                className="text-xs font-semibold bg-amber-500 hover:bg-amber-400 text-navy-900 px-3 py-2 rounded-lg flex items-center gap-2 transition-colors"
+                className="text-xs font-semibold bg-amber-500 hover:bg-amber-400 text-zinc-100 px-3 py-2 rounded-lg flex items-center gap-2 transition-colors"
               >
                 <RotateCcw className="w-4 h-4" />
                 Reset Demo Data
               </button>
               <button
                 onClick={() => onNavigate({ kind: 'home' })}
-                className="text-navy-300 hover:text-white transition-colors"
+                className="text-zinc-300 hover:text-white transition-colors"
               >
                 <ArrowLeft className="w-5 h-5" />
               </button>
@@ -137,24 +137,24 @@ export default function TeacherDashboardView({ sessionId, onNavigate }: Props) {
           <div className="card border-2 border-blue-200 bg-gradient-to-br from-white to-blue-50/40">
             <div className="flex items-center gap-2 mb-4">
               <BookOpen className="w-5 h-5 text-blue-600" />
-              <h2 className="text-lg font-bold text-navy-800">Top 3 Reteach Priorities (Teach Tomorrow)</h2>
+              <h2 className="text-lg font-bold text-zinc-200">Top 3 Reteach Priorities (Teach Tomorrow)</h2>
             </div>
             <div className="space-y-4">
               {reteachPriorities.map(priority => (
-                <div key={priority.key} className="rounded-lg border border-blue-200 bg-white p-4">
+                <div key={priority.key} className="rounded-lg border border-blue-200 bg-zinc-900 p-4">
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-sm font-bold text-navy-800">
+                    <h3 className="text-sm font-bold text-zinc-200">
                       Priority {priority.priority}: {priority.label}
                     </h3>
                     <span className="text-xs font-semibold text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full">
                       {priority.count} student{priority.count !== 1 ? 's' : ''}
                     </span>
                   </div>
-                  <p className="text-sm text-navy-600 mb-2">
+                  <p className="text-sm text-zinc-400 mb-2">
                     <span className="font-semibold">Who needs help:</span>{' '}
                     {priority.studentsNeedingHelp.join(', ')}
                   </p>
-                  <p className="text-sm text-navy-700">
+                  <p className="text-sm text-zinc-300">
                     <span className="font-semibold">10-minute activity:</span> {priority.tenMinutePlan}
                   </p>
                 </div>
@@ -166,13 +166,13 @@ export default function TeacherDashboardView({ sessionId, onNavigate }: Props) {
         <div className="grid md:grid-cols-2 gap-6">
           <div className="card">
             <div className="flex items-center gap-2 mb-4">
-              <TrendingUp className="w-5 h-5 text-navy-700" />
-              <h2 className="text-lg font-bold text-navy-800">Class Average Scores</h2>
+              <TrendingUp className="w-5 h-5 text-zinc-300" />
+              <h2 className="text-lg font-bold text-zinc-200">Class Average Scores</h2>
             </div>
             {results.length > 0 ? (
               <ScoreBar scores={avgScores} />
             ) : (
-              <div className="text-center py-8 text-navy-400">
+              <div className="text-center py-8 text-zinc-400">
                 <Users className="w-8 h-8 mx-auto mb-2 opacity-50" />
                 <p>No students have completed yet.</p>
                 <p className="text-sm">Share code <strong>{session.code}</strong> with your class.</p>
@@ -184,7 +184,7 @@ export default function TeacherDashboardView({ sessionId, onNavigate }: Props) {
           <div className="card border-l-4 border-l-amber-400">
             <div className="flex items-center gap-2 mb-4">
               <AlertTriangle className="w-5 h-5 text-amber-600" />
-              <h2 className="text-lg font-bold text-navy-800">Top Misconceptions</h2>
+              <h2 className="text-lg font-bold text-zinc-200">Top Misconceptions</h2>
             </div>
             {topMisconceptions.length > 0 ? (
               <div className="space-y-3">
@@ -197,15 +197,15 @@ export default function TeacherDashboardView({ sessionId, onNavigate }: Props) {
                         {count}
                       </span>
                       <div>
-                        <div className="font-semibold text-navy-800 text-sm">{meta.label}</div>
-                        <div className="text-xs text-navy-500">{meta.description}</div>
+                        <div className="font-semibold text-zinc-200 text-sm">{meta.label}</div>
+                        <div className="text-xs text-zinc-500">{meta.description}</div>
                       </div>
                     </div>
                   );
                 })}
               </div>
             ) : (
-              <p className="text-navy-400 text-sm">No misconceptions detected — great class!</p>
+              <p className="text-zinc-400 text-sm">No misconceptions detected — great class!</p>
             )}
           </div>
         </div>
@@ -215,7 +215,7 @@ export default function TeacherDashboardView({ sessionId, onNavigate }: Props) {
           <div className="card border-2 border-amber-200 bg-gradient-to-br from-white to-amber-50/30">
             <div className="flex items-center gap-2 mb-4">
               <Brain className="w-6 h-6 text-amber-500" />
-              <h2 className="text-lg font-bold text-navy-800">AI-Detected Patterns</h2>
+              <h2 className="text-lg font-bold text-zinc-200">AI-Detected Patterns</h2>
               <span className="text-xs bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
                 <Sparkles className="w-3 h-3" /> AI ANALYSIS
               </span>
@@ -225,27 +225,27 @@ export default function TeacherDashboardView({ sessionId, onNavigate }: Props) {
                 <div key={i} className={`rounded-lg p-4 border ${
                   insight.severity === 'high' ? 'bg-red-50 border-red-200' :
                   insight.severity === 'medium' ? 'bg-amber-50 border-amber-200' :
-                  'bg-navy-50 border-navy-200'
+                  'bg-zinc-50 border-zinc-200'
                 }`}>
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <span className={`text-xs font-bold uppercase px-2 py-0.5 rounded ${
                         insight.severity === 'high' ? 'bg-red-200 text-red-800' :
                         insight.severity === 'medium' ? 'bg-amber-200 text-amber-800' :
-                        'bg-navy-200 text-navy-800'
+                        'bg-zinc-200 text-zinc-200'
                       }`}>
                         {insight.severity} priority
                       </span>
-                      <span className="font-bold text-navy-800 text-sm">{insight.pattern}</span>
+                      <span className="font-bold text-zinc-200 text-sm">{insight.pattern}</span>
                     </div>
-                    <span className="text-xs text-navy-400">
+                    <span className="text-xs text-zinc-400">
                       {insight.students.join(', ')}
                     </span>
                   </div>
-                  <p className="text-navy-700 text-sm leading-relaxed mb-2">{insight.description}</p>
-                  <div className="flex items-start gap-2 bg-white/60 rounded p-2">
+                  <p className="text-zinc-300 text-sm leading-relaxed mb-2">{insight.description}</p>
+                  <div className="flex items-start gap-2 bg-zinc-900/60 rounded p-2">
                     <BookOpen className="w-4 h-4 text-blue-600 mt-0.5 shrink-0" />
-                    <p className="text-sm text-navy-600"><span className="font-semibold">Teaching move:</span> {insight.reteachSuggestion}</p>
+                    <p className="text-sm text-zinc-400"><span className="font-semibold">Teaching move:</span> {insight.reteachSuggestion}</p>
                   </div>
                 </div>
               ))}
@@ -258,7 +258,7 @@ export default function TeacherDashboardView({ sessionId, onNavigate }: Props) {
           <div className="card border-l-4 border-l-blue-500">
             <div className="flex items-center gap-2 mb-4">
               <BookOpen className="w-5 h-5 text-blue-600" />
-              <h2 className="text-lg font-bold text-navy-800">Suggested Mini-Lessons</h2>
+              <h2 className="text-lg font-bold text-zinc-200">Suggested Mini-Lessons</h2>
             </div>
             <div className="space-y-3">
               {topMisconceptions.map(([tag]) => {
@@ -268,8 +268,8 @@ export default function TeacherDashboardView({ sessionId, onNavigate }: Props) {
                   <div key={tag} className="flex items-start gap-3 bg-blue-50 rounded-lg p-3">
                     <ArrowRight className="w-4 h-4 text-blue-600 mt-0.5 shrink-0" />
                     <div>
-                      <div className="font-semibold text-navy-800 text-sm">{meta.label}</div>
-                      <div className="text-sm text-navy-600">{meta.reteachAction}</div>
+                      <div className="font-semibold text-zinc-200 text-sm">{meta.label}</div>
+                      <div className="text-sm text-zinc-400">{meta.reteachAction}</div>
                     </div>
                   </div>
                 );
@@ -282,8 +282,8 @@ export default function TeacherDashboardView({ sessionId, onNavigate }: Props) {
         {studentA && studentB && (
           <div>
             <div className="flex items-center gap-2 mb-4">
-              <Users className="w-5 h-5 text-navy-700" />
-              <h2 className="text-lg font-bold text-navy-800">Student Comparison</h2>
+              <Users className="w-5 h-5 text-zinc-300" />
+              <h2 className="text-lg font-bold text-zinc-200">Student Comparison</h2>
               <span className="text-xs bg-emerald-100 text-emerald-700 font-semibold px-2 py-0.5 rounded-full">
                 LIVE INSIGHT
               </span>
@@ -298,16 +298,16 @@ export default function TeacherDashboardView({ sessionId, onNavigate }: Props) {
               <div className="card mt-6 border-l-4 border-l-amber-400">
                 <div className="flex items-center gap-2 mb-3">
                   <Brain className="w-5 h-5 text-amber-500" />
-                  <h3 className="font-bold text-navy-800">AI Comparative Analysis</h3>
+                  <h3 className="font-bold text-zinc-200">AI Comparative Analysis</h3>
                 </div>
                 <div className="space-y-4">
                   {smartComparisons.map((comp, i) => (
                     <div key={i}>
-                      <h4 className="font-semibold text-navy-800 text-sm mb-1">{comp.headline}</h4>
-                      <p className="text-navy-700 text-sm leading-relaxed mb-2">{comp.analysis}</p>
+                      <h4 className="font-semibold text-zinc-200 text-sm mb-1">{comp.headline}</h4>
+                      <p className="text-zinc-300 text-sm leading-relaxed mb-2">{comp.analysis}</p>
                       <div className="flex items-start gap-2 bg-blue-50 rounded p-2">
                         <BookOpen className="w-4 h-4 text-blue-600 mt-0.5 shrink-0" />
-                        <p className="text-sm text-navy-600"><span className="font-semibold">Teaching move:</span> {comp.teachingMove}</p>
+                        <p className="text-sm text-zinc-400"><span className="font-semibold">Teaching move:</span> {comp.teachingMove}</p>
                       </div>
                     </div>
                   ))}
@@ -320,13 +320,13 @@ export default function TeacherDashboardView({ sessionId, onNavigate }: Props) {
         {/* Individual Results List */}
         {results.length > 0 && (
           <div className="card">
-            <h2 className="text-lg font-bold text-navy-800 mb-4">All Student Results</h2>
+            <h2 className="text-lg font-bold text-zinc-200 mb-4">All Student Results</h2>
             <div className="space-y-2">
               {results.map(r => (
-                <div key={r.id} className="flex items-center justify-between p-3 bg-navy-50 rounded-lg">
+                <div key={r.id} className="flex items-center justify-between p-3 bg-zinc-50 rounded-lg">
                   <div>
-                    <span className="font-semibold text-navy-800">{r.displayName}</span>
-                    <span className="text-navy-400 text-sm ml-2">
+                    <span className="font-semibold text-zinc-200">{r.displayName}</span>
+                    <span className="text-zinc-400 text-sm ml-2">
                       Score: {Object.values(r.finalScores).reduce((a, b) => a + b, 0)}/400
                     </span>
                   </div>
@@ -340,7 +340,7 @@ export default function TeacherDashboardView({ sessionId, onNavigate }: Props) {
                       ) : null;
                     })}
                     {r.misconceptionTags.length > 2 && (
-                      <span className="text-xs text-navy-400">+{r.misconceptionTags.length - 2} more</span>
+                      <span className="text-xs text-zinc-400">+{r.misconceptionTags.length - 2} more</span>
                     )}
                   </div>
                 </div>
@@ -365,8 +365,8 @@ function StudentCard({ result, highlight, decisionNodes }: { result: StudentResu
 
   return (
     <div className={`card border-t-4 ${borderColor}`}>
-      <h3 className="text-lg font-bold text-navy-800 mb-1">{result.displayName}</h3>
-      <div className="flex items-center gap-3 text-xs text-navy-400 mb-3">
+      <h3 className="text-lg font-bold text-zinc-200 mb-1">{result.displayName}</h3>
+      <div className="flex items-center gap-3 text-xs text-zinc-400 mb-3">
         <span>Total: {Object.values(result.finalScores).reduce((a, b) => a + b, 0)}/400</span>
         <span>Avg reasoning: {Math.round(avgWords)} words</span>
       </div>
@@ -378,9 +378,9 @@ function StudentCard({ result, highlight, decisionNodes }: { result: StudentResu
           const opt = node?.options.find(o => o.id === d.optionId);
           return (
             <div key={d.nodeId} className="text-sm">
-              <span className="font-semibold text-navy-700">{i + 1}. {node?.title}:</span>{' '}
-              <span className="text-navy-600">{opt?.shortText}</span>
-              <p className="text-navy-400 italic text-xs mt-0.5 truncate">"{d.reasoning}"</p>
+              <span className="font-semibold text-zinc-300">{i + 1}. {node?.title}:</span>{' '}
+              <span className="text-zinc-400">{opt?.shortText}</span>
+              <p className="text-zinc-400 italic text-xs mt-0.5 truncate">"{d.reasoning}"</p>
             </div>
           );
         })}

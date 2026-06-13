@@ -30,25 +30,25 @@ export default function StudentJoinView({ onJoin, onBack }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-navy-50">
-      <header className="bg-white border-b border-navy-100">
+    <div className="min-h-screen bg-zinc-50">
+      <header className="bg-zinc-900 border-b border-zinc-100">
         <div className="max-w-md mx-auto px-6 py-4 flex items-center gap-3">
-          <button onClick={onBack} className="text-navy-500 hover:text-navy-700 transition-colors">
+          <button onClick={onBack} className="text-zinc-500 hover:text-zinc-300 transition-colors">
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <h1 className="text-lg font-bold text-navy-800">Join Session</h1>
+          <h1 className="text-lg font-bold text-zinc-200">Join Session</h1>
         </div>
       </header>
 
       <main className="max-w-md mx-auto px-6 py-8">
         <div className="card space-y-5">
-          <div className="flex items-center gap-2 text-navy-700 mb-2">
+          <div className="flex items-center gap-2 text-zinc-300 mb-2">
             <LogIn className="w-5 h-5" />
             <h2 className="font-semibold">Enter Your Details</h2>
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-navy-700 mb-1">
+            <label className="block text-sm font-semibold text-zinc-300 mb-1">
               Session Code
             </label>
             <input
@@ -56,14 +56,14 @@ export default function StudentJoinView({ onJoin, onBack }: Props) {
               value={code}
               onChange={e => { setCode(e.target.value); setError(''); }}
               placeholder="e.g. JMS1607"
-              className="w-full px-4 py-3 border-2 border-navy-100 rounded-lg text-lg tracking-widest font-semibold
-                         focus:border-navy-500 focus:outline-none transition-colors text-center uppercase"
+              className="w-full px-4 py-3 border-2 border-zinc-100 rounded-lg text-lg tracking-widest font-semibold
+                         focus:border-zinc-500 focus:outline-none transition-colors text-center uppercase"
               maxLength={8}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-navy-700 mb-1">
+            <label className="block text-sm font-semibold text-zinc-300 mb-1">
               Your First Name
             </label>
             <input
@@ -71,8 +71,8 @@ export default function StudentJoinView({ onJoin, onBack }: Props) {
               value={name}
               onChange={e => { setName(e.target.value); setError(''); }}
               placeholder="Enter your first name"
-              className="w-full px-4 py-3 border-2 border-navy-100 rounded-lg text-lg
-                         focus:border-navy-500 focus:outline-none transition-colors"
+              className="w-full px-4 py-3 border-2 border-zinc-100 rounded-lg text-lg
+                         focus:border-zinc-500 focus:outline-none transition-colors"
               maxLength={20}
             />
           </div>
@@ -87,7 +87,7 @@ export default function StudentJoinView({ onJoin, onBack }: Props) {
             Start Simulation
           </button>
 
-          <p className="text-center text-navy-400 text-xs">
+          <p className="text-center text-zinc-400 text-xs">
             Demo code: JMS1607
           </p>
         </div>

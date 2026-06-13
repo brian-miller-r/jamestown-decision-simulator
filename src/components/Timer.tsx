@@ -21,12 +21,12 @@ export default function Timer({ startedAt, finished }: { startedAt: number; fini
   const urgent = remaining <= 60;
 
   return (
-    <div className={`flex items-center gap-2 text-sm font-semibold ${urgent ? 'text-red-600' : 'text-navy-700'}`}>
+    <div className={`flex items-center gap-2 text-sm font-semibold ${urgent ? 'text-red-600' : 'text-zinc-300'}`}>
       <Clock className="w-4 h-4" />
       <span>{minutes}:{String(seconds).padStart(2, '0')}</span>
-      <div className="w-20 h-2 rounded-full bg-navy-100 overflow-hidden ml-1">
+      <div className="w-20 h-2 rounded-full bg-zinc-100 overflow-hidden ml-1">
         <div
-          className={`h-full rounded-full transition-all duration-1000 ${urgent ? 'bg-red-500' : 'bg-navy-600'}`}
+          className={`h-full rounded-full transition-all duration-1000 ${urgent ? 'bg-red-500' : 'bg-zinc-600'}`}
           style={{ width: `${pct}%` }}
         />
       </div>

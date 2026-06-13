@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import type { LucideIcon } from 'lucide-react';
-import { BarChart3, ChevronLeft, ChevronRight, FileText, GraduationCap, Home, LogIn, Menu, Settings, Ship, X } from 'lucide-react';
+import { BarChart3, ChevronLeft, ChevronRight, FileText, GraduationCap, Home, LogIn, Menu, Settings, Ship, Brain, Gamepad2, X } from 'lucide-react';
 import type { View } from './data/types';
 import { DEMO_SESSION_ID, seedDemoData } from './data/seed';
 import { getResult, getResults } from './data/store';
-import HomeView from './views/HomeView';
+import PlatformHomeView from './views/PlatformHomeView';
+import SimulatorHomeView from './views/SimulatorHomeView';
 import TeacherSetupView from './views/TeacherSetupView';
 import StudentJoinView from './views/StudentJoinView';
 import StudentSimView from './views/StudentSimView';
@@ -12,7 +13,7 @@ import StudentDebriefView from './views/StudentDebriefView';
 import TeacherDashboardView from './views/TeacherDashboardView';
 import SettingsView from './views/SettingsView';
 
-type NavItemId = 'home' | 'teacher-setup' | 'student-join' | 'teacher-dashboard' | 'student-debrief' | 'settings';
+type NavItemId = 'home' | 'simulator' | 'teacher-setup' | 'student-join' | 'teacher-dashboard' | 'student-debrief' | 'settings';
 
 interface NavItem {
   id: NavItemId;
@@ -55,6 +56,7 @@ export default function App() {
 
   const navItems: NavItem[] = [
     { id: 'home', label: 'Home', icon: Home, target: { kind: 'home' } },
+    { id: 'simulator', label: 'Simulator', icon: Gamepad2, target: { kind: 'simulator' } },
     { id: 'teacher-setup', label: 'Teacher', icon: GraduationCap, target: { kind: 'teacher-setup' } },
     { id: 'student-join', label: 'Student', icon: LogIn, target: { kind: 'student-join' } },
     { id: 'teacher-dashboard', label: 'Dashboard', icon: BarChart3, target: resolveTeacherDashboardTarget(view) },
@@ -68,22 +70,22 @@ export default function App() {
   const activeNavItem = getActiveNavItem(view);
 
   return (
-    <div className="min-h-screen bg-navy-50 flex">
+    <div className="min-h-screen bg-black flex">
       <aside
-        className={`hidden lg:flex lg:flex-col border-r border-navy-200 bg-white transition-all duration-200 ${
+        className={`hidden lg:flex lg:flex-col border-r border-zinc-200 bg-zinc-900 transition-all duration-200 ${
           desktopNavCollapsed ? 'lg:w-16' : 'lg:w-44'
         }`}
       >
-        <div className="h-14 px-2 border-b border-navy-100 flex items-center gap-2">
-          <div className="w-9 h-9 rounded-lg bg-navy-800 text-white flex items-center justify-center shrink-0">
-            <Ship className="w-5 h-5" />
+        <div className="h-14 px-2 border-b border-zinc-100 flex items-center gap-2">
+          <div className="w-9 h-9 rounded-lg bg-zinc-800 text-white flex items-center justify-center shrink-0">
+            <Brain className="w-5 h-5" />
           </div>
           {!desktopNavCollapsed && (
-            <p className="text-xs font-bold text-navy-900 leading-tight">Jamestown</p>
+            <p className="text-xs font-bold text-zinc-100 leading-tight">SOL Tutor.AI</p>
           )}
           <button
             onClick={() => setDesktopNavCollapsed(!desktopNavCollapsed)}
-            className="ml-auto p-1.5 rounded-md text-navy-500 hover:bg-navy-50 hover:text-navy-800 transition-colors"
+            className="ml-auto p-1.5 rounded-md text-zinc-500 hover:bg-zinc-50 hover:text-zinc-200 transition-colors"
             aria-label={desktopNavCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
             {desktopNavCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
@@ -104,8 +106,8 @@ export default function App() {
                     desktopNavCollapsed ? 'justify-center' : 'gap-2'
                   } ${
                     active
-                      ? 'bg-navy-100 text-navy-900 font-semibold'
-                      : 'text-navy-600 hover:bg-navy-50 hover:text-navy-900'
+                      ? 'bg-zinc-100 text-zinc-100 font-semibold'
+                      : 'text-zinc-400 hover:bg-zinc-50 hover:text-zinc-100'
                   }`}
                 >
                   <Icon className="w-4 h-4" />
@@ -116,7 +118,7 @@ export default function App() {
           </nav>
         </div>
         {/* Bottom nav (Settings) */}
-        <div className="px-2 py-3 border-t border-navy-100">
+        <div className="px-2 py-3 border-t border-zinc-100">
           <nav className="space-y-1">
             {bottomNavItems.map(item => {
               const Icon = item.icon;
@@ -130,8 +132,8 @@ export default function App() {
                     desktopNavCollapsed ? 'justify-center' : 'gap-2'
                   } ${
                     active
-                      ? 'bg-navy-100 text-navy-900 font-semibold'
-                      : 'text-navy-600 hover:bg-navy-50 hover:text-navy-900'
+                      ? 'bg-zinc-100 text-zinc-100 font-semibold'
+                      : 'text-zinc-400 hover:bg-zinc-50 hover:text-zinc-100'
                   }`}
                 >
                   <Icon className="w-4 h-4" />
@@ -144,15 +146,15 @@ export default function App() {
       </aside>
 
       <div className="flex-1 min-w-0">
-        <header className="lg:hidden h-14 px-4 border-b border-navy-200 bg-white flex items-center justify-between">
+        <header className="lg:hidden h-14 px-4 border-b border-zinc-200 bg-zinc-900 flex items-center justify-between">
           <button
             onClick={() => setMobileNavOpen(true)}
-            className="p-2 rounded-md text-navy-700 hover:bg-navy-50"
+            className="p-2 rounded-md text-zinc-300 hover:bg-zinc-50"
             aria-label="Open navigation menu"
           >
             <Menu className="w-5 h-5" />
           </button>
-          <p className="text-sm font-semibold text-navy-800">Jamestown Simulator</p>
+          <p className="text-sm font-semibold text-zinc-200">SOL Tutor.AI</p>
           <div className="w-9" />
         </header>
 
@@ -162,16 +164,16 @@ export default function App() {
       {mobileNavOpen && (
         <div className="fixed inset-0 z-40 lg:hidden">
           <button
-            className="absolute inset-0 bg-navy-900/45"
+            className="absolute inset-0 bg-zinc-900/45"
             onClick={() => setMobileNavOpen(false)}
             aria-label="Close navigation menu"
           />
-          <aside className="relative h-full w-56 max-w-[85vw] bg-white border-r border-navy-200 shadow-2xl">
-            <div className="h-14 px-4 border-b border-navy-100 flex items-center justify-between">
-              <p className="text-sm font-bold text-navy-900">Navigate</p>
+          <aside className="relative h-full w-56 max-w-[85vw] bg-zinc-900 border-r border-zinc-200 shadow-2xl">
+            <div className="h-14 px-4 border-b border-zinc-100 flex items-center justify-between">
+              <p className="text-sm font-bold text-zinc-100">Navigate</p>
               <button
                 onClick={() => setMobileNavOpen(false)}
-                className="p-1.5 rounded-md text-navy-600 hover:bg-navy-50"
+                className="p-1.5 rounded-md text-zinc-400 hover:bg-zinc-50"
                 aria-label="Close navigation menu"
               >
                 <X className="w-5 h-5" />
@@ -188,8 +190,8 @@ export default function App() {
                       onClick={() => requestNavigation(item.target, item.label)}
                       className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
                         active
-                          ? 'bg-navy-100 text-navy-900 font-semibold'
-                          : 'text-navy-600 hover:bg-navy-50 hover:text-navy-900'
+                          ? 'bg-zinc-100 text-zinc-100 font-semibold'
+                          : 'text-zinc-400 hover:bg-zinc-50 hover:text-zinc-100'
                       }`}
                     >
                       <Icon className="w-4 h-4" />
@@ -204,12 +206,12 @@ export default function App() {
       )}
 
       {pendingNavigation && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-navy-900/45 px-4">
-          <div className="w-full max-w-md rounded-xl border border-navy-200 bg-white p-6 shadow-2xl">
-            <h2 className="text-xl font-bold text-navy-900 mb-2">Leave current simulation?</h2>
-            <p className="text-sm text-navy-600 leading-relaxed">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/45 px-4">
+          <div className="w-full max-w-md rounded-xl border border-zinc-200 bg-zinc-900 p-6 shadow-2xl">
+            <h2 className="text-xl font-bold text-zinc-100 mb-2">Leave current simulation?</h2>
+            <p className="text-sm text-zinc-400 leading-relaxed">
               You are in an active student simulation. Do you want to leave this screen and open{' '}
-              <span className="font-semibold text-navy-800">{pendingNavigation.label}</span>?
+              <span className="font-semibold text-zinc-200">{pendingNavigation.label}</span>?
             </p>
             <div className="mt-6 flex justify-end gap-3">
               <button
@@ -235,7 +237,10 @@ export default function App() {
 function renderView(view: View, navigate: (v: View) => void) {
   switch (view.kind) {
     case 'home':
-      return <HomeView onNavigate={navigate} />;
+      return <PlatformHomeView onNavigate={navigate} />;
+
+    case 'simulator':
+      return <SimulatorHomeView onNavigate={navigate} />;
 
     case 'teacher-setup':
       return <TeacherSetupView onNavigate={navigate} />;
@@ -268,7 +273,7 @@ function renderView(view: View, navigate: (v: View) => void) {
       return <SettingsView />;
 
     default:
-      return <HomeView onNavigate={navigate} />;
+      return <PlatformHomeView onNavigate={navigate} />;
   }
 }
 
@@ -331,6 +336,8 @@ function getActiveNavItem(view: View): NavItemId | null {
   switch (view.kind) {
     case 'home':
       return 'home';
+    case 'simulator':
+      return 'simulator';
     case 'teacher-setup':
       return 'teacher-setup';
     case 'student-join':

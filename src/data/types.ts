@@ -55,6 +55,7 @@ export interface StudentResult {
 
 export type View =
   | { kind: 'home' }
+  | { kind: 'simulator' }
   | { kind: 'teacher-setup' }
   | { kind: 'teacher-dashboard'; sessionId: string }
   | { kind: 'student-join' }

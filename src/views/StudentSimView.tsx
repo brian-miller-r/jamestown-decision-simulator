@@ -252,8 +252,8 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
     return (
       <div className="min-h-screen flex items-center justify-center px-6">
         <div className="card text-center max-w-md">
-          <h2 className="text-xl font-bold text-navy-800 mb-2">Session Not Found</h2>
-          <p className="text-navy-600 mb-4">This session may have been removed.</p>
+          <h2 className="text-xl font-bold text-zinc-200 mb-2">Session Not Found</h2>
+          <p className="text-zinc-400 mb-4">This session may have been removed.</p>
           <button className="btn-primary" onClick={() => onNavigate({ kind: 'home' })}>Back to Home</button>
         </div>
       </div>
@@ -263,29 +263,29 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
   // INTRO
   if (phase === 'intro') {
     return (
-      <div className="min-h-screen bg-navy-900 text-white flex items-center justify-center px-6">
+      <div className="min-h-screen bg-zinc-900 text-white flex items-center justify-center px-6">
         <div className="max-w-lg w-full text-center">
-          <div className="w-20 h-20 rounded-full bg-navy-700 flex items-center justify-center mx-auto mb-6">
+          <div className="w-20 h-20 rounded-full bg-zinc-700 flex items-center justify-center mx-auto mb-6">
             <Anchor className="w-10 h-10 text-amber-400" />
           </div>
           <h1 className="text-3xl font-bold mb-3">Welcome, {studentName}</h1>
-          <p className="text-navy-200 text-lg mb-2">The year is 1607.</p>
-          <p className="text-navy-300 mb-6 leading-relaxed">
+          <p className="text-zinc-200 text-lg mb-2">The year is 1607.</p>
+          <p className="text-zinc-300 mb-6 leading-relaxed">
             You have just arrived in Virginia aboard three small ships.
             The land is new, the Powhatan people are watching, and your
             colony's future depends on your choices. Over the next 7 minutes,
             you will face 4 critical decisions. Think carefully — and explain
             your reasoning each time.
           </p>
-          <div className="bg-navy-800 rounded-lg p-4 mb-4 text-sm text-navy-200">
+          <div className="bg-zinc-800 rounded-lg p-4 mb-4 text-sm text-zinc-200">
             <p className="font-semibold text-amber-400 mb-1">Your colony will be scored on:</p>
             <p>Survival Readiness &middot; Colony Economy &middot; Powhatan Diplomacy &middot; Governance Stability</p>
           </div>
-          <div className="bg-navy-800 rounded-lg p-3 mb-8 text-sm text-navy-300 flex items-center gap-2 justify-center">
+          <div className="bg-zinc-800 rounded-lg p-3 mb-8 text-sm text-zinc-300 flex items-center gap-2 justify-center">
             <Brain className="w-4 h-4 text-amber-400" />
             <span>An AI coach will analyze your reasoning and give you personalized feedback</span>
           </div>
-          <button className="btn-primary bg-amber-500 hover:bg-amber-600 text-navy-900" onClick={() => setPhase('decide')}>
+          <button className="btn-primary bg-amber-500 hover:bg-amber-600 text-zinc-100" onClick={() => setPhase('decide')}>
             Begin the Simulation
           </button>
         </div>
@@ -298,14 +298,14 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
     const adaptedContext = adaptForReadingLevel(node.historicalContext, session.readingLevel);
     const adaptedPrompt = adaptForReadingLevel(node.prompt, session.readingLevel);
     return (
-      <div className="min-h-screen bg-navy-50">
-        <header className="bg-white border-b border-navy-100 sticky top-0 z-10">
+      <div className="min-h-screen bg-zinc-50">
+        <header className="bg-zinc-900 border-b border-zinc-100 sticky top-0 z-10">
           <div className="max-w-3xl mx-auto px-6 py-3 flex items-center justify-between">
             <div>
-              <span className="text-xs text-navy-400 font-semibold uppercase tracking-wide">
+              <span className="text-xs text-zinc-400 font-semibold uppercase tracking-wide">
                 Decision {currentIdx + 1} of {decisionNodes.length}
               </span>
-              <h1 className="text-base font-bold text-navy-800">{node.title}</h1>
+              <h1 className="text-base font-bold text-zinc-200">{node.title}</h1>
             </div>
             <Timer startedAt={startedAt} finished={finished} />
           </div>
@@ -314,15 +314,15 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
         <main className="max-w-3xl mx-auto px-6 py-6">
           <div className="card mb-4">
             <div className="flex items-center justify-between gap-3 mb-3">
-              <span className="text-xs font-semibold uppercase tracking-wide text-navy-500">
+              <span className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
                 Reading level: {readingLevelLabel(session.readingLevel)}
               </span>
-              <span className="text-xs font-semibold uppercase tracking-wide text-navy-500">
+              <span className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
                 Standard: {session.standard}
               </span>
             </div>
-            <p className="text-navy-600 text-sm leading-relaxed mb-4">{adaptedContext}</p>
-            <h2 className="text-lg font-bold text-navy-800">{adaptedPrompt}</h2>
+            <p className="text-zinc-400 text-sm leading-relaxed mb-4">{adaptedContext}</p>
+            <h2 className="text-lg font-bold text-zinc-200">{adaptedPrompt}</h2>
           </div>
 
           <div className="space-y-3 mb-6">
@@ -332,12 +332,12 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
                 onClick={() => setSelectedOption(opt.id)}
                 className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
                   selectedOption === opt.id
-                    ? 'border-navy-700 bg-navy-50'
-                    : 'border-navy-100 bg-white hover:border-navy-300'
+                    ? 'border-zinc-700 bg-zinc-50'
+                    : 'border-zinc-100 bg-zinc-900 hover:border-zinc-300'
                 }`}
               >
-                <span className="font-semibold text-navy-800">{opt.shortText}</span>
-                <span className="block text-sm text-navy-500 mt-1">
+                <span className="font-semibold text-zinc-200">{opt.shortText}</span>
+                <span className="block text-sm text-zinc-500 mt-1">
                   {adaptForReadingLevel(opt.text, session.readingLevel)}
                 </span>
               </button>
@@ -346,7 +346,7 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
 
           {selectedOption && (
             <div className="card mb-6">
-              <label className="block text-sm font-semibold text-navy-700 mb-2">
+              <label className="block text-sm font-semibold text-zinc-300 mb-2">
                 Why did you choose this? (1-2 sentences)
               </label>
               <div className="relative">
@@ -357,7 +357,7 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
                     if (dictationError) setDictationError('');
                   }}
                   placeholder="The AI coach will analyze your reasoning — be specific about your thinking!"
-                  className="w-full px-4 py-3 pr-16 pb-14 border-2 border-navy-100 rounded-lg focus:border-navy-500 focus:outline-none transition-colors resize-none"
+                  className="w-full px-4 py-3 pr-16 pb-14 border-2 border-zinc-100 rounded-lg focus:border-zinc-500 focus:outline-none transition-colors resize-none"
                   rows={3}
                 />
                 <button
@@ -374,7 +374,7 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
                   className={`group absolute bottom-3 right-3 w-11 h-11 rounded-full border flex items-center justify-center transition-colors ${
                     isDictating
                       ? 'border-amber-400 bg-amber-100 text-amber-700'
-                      : 'border-navy-200 bg-white text-navy-600 hover:bg-navy-50'
+                      : 'border-zinc-200 bg-zinc-900 text-zinc-400 hover:bg-zinc-50'
                   }`}
                   aria-label="Dictate"
                 >
@@ -473,14 +473,14 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
     const chosenOption = node.options.find(o => o.id === lastDecision?.optionId);
 
     return (
-      <div className="min-h-screen bg-navy-50">
-        <header className="bg-white border-b border-navy-100 sticky top-0 z-10">
+      <div className="min-h-screen bg-zinc-50">
+        <header className="bg-zinc-900 border-b border-zinc-100 sticky top-0 z-10">
           <div className="max-w-3xl mx-auto px-6 py-3 flex items-center justify-between">
             <div>
-              <span className="text-xs text-navy-400 font-semibold uppercase tracking-wide">
+              <span className="text-xs text-zinc-400 font-semibold uppercase tracking-wide">
                 Decision {currentIdx + 1} of {decisionNodes.length}
               </span>
-              <h1 className="text-base font-bold text-navy-800 flex items-center gap-2">
+              <h1 className="text-base font-bold text-zinc-200 flex items-center gap-2">
                 <Brain className="w-4 h-4 text-amber-500" /> AI Coach Feedback
               </h1>
             </div>
@@ -489,9 +489,9 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
         </header>
 
         <main className="max-w-3xl mx-auto px-6 py-6 space-y-4">
-          <div className="rounded-xl overflow-hidden shadow-md relative bg-navy-800" style={{ aspectRatio: '16/9' }}>
+          <div className="rounded-xl overflow-hidden shadow-md relative bg-zinc-800" style={{ aspectRatio: '16/9' }}>
             {isGeneratingImage && !decisionImageUrl && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-navy-800">
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-zinc-800">
                 <div className="w-full h-full absolute inset-0 overflow-hidden">
                   <div
                     className="absolute inset-0"
@@ -510,7 +510,7 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
                     </svg>
                   </div>
                   <p className="text-amber-300 text-sm font-semibold">Illustrating your decision…</p>
-                  <p className="text-navy-400 text-xs mt-1">AI is painting a historical scene</p>
+                  <p className="text-zinc-400 text-xs mt-1">AI is painting a historical scene</p>
                 </div>
               </div>
             )}
@@ -526,7 +526,7 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
 
             {!isGeneratingImage && !decisionImageUrl && (
               <div className="absolute inset-0 flex items-center justify-center flex-col gap-1 px-4">
-                <p className="text-navy-500 text-xs text-center">Historical illustration unavailable</p>
+                <p className="text-zinc-500 text-xs text-center">Historical illustration unavailable</p>
                 {friendlyImageError && (
                   <p className="text-red-400 text-xs text-center max-w-sm">{friendlyImageError}</p>
                 )}
@@ -540,7 +540,7 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
                   <p className="text-amber-300 text-xs">Your choice: {chosenOption.shortText}</p>
                 )}
                 {showImageDebug && imageProviderLabel && (
-                  <p className="text-navy-200 text-[11px]">Illustration source: {imageProviderLabel}</p>
+                  <p className="text-zinc-200 text-[11px]">Illustration source: {imageProviderLabel}</p>
                 )}
                 {showImageDebug && imageDebugMessage && (
                   <p className="text-amber-100 text-[10px] mt-1 break-words">{imageDebugMessage}</p>
@@ -580,15 +580,15 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
                 </span>
               </div>
             </div>
-            <p className="text-navy-700 leading-relaxed">{aiAnalysis.primaryCoaching}</p>
+            <p className="text-zinc-300 leading-relaxed">{aiAnalysis.primaryCoaching}</p>
             {fallbackNotice && (
-              <p className="mt-2 text-xs text-navy-500">{fallbackNotice}</p>
+              <p className="mt-2 text-xs text-zinc-500">{fallbackNotice}</p>
             )}
           </div>
 
           {/* Explainability cues */}
           <div className="card">
-            <h3 className="text-sm font-semibold text-navy-700 mb-2">AI noticed these reasoning cues</h3>
+            <h3 className="text-sm font-semibold text-zinc-300 mb-2">AI noticed these reasoning cues</h3>
             {aiAnalysis.evidenceKeywords.length > 0 ? (
               <div className="flex flex-wrap gap-2">
                 {aiAnalysis.evidenceKeywords.map(keyword => (
@@ -601,7 +601,7 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-navy-500">
+              <p className="text-sm text-zinc-500">
                 No high-risk misconception cues detected in your wording.
               </p>
             )}
@@ -613,13 +613,13 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
               <span className="text-xs font-bold uppercase tracking-wide text-orange-600 block mb-2">
                 One More Thing
               </span>
-              <p className="text-navy-700 leading-relaxed text-sm">{aiAnalysis.secondaryCoaching}</p>
+              <p className="text-zinc-300 leading-relaxed text-sm">{aiAnalysis.secondaryCoaching}</p>
             </div>
           )}
 
           {/* Reasoning quality indicator */}
           <div className="flex items-center gap-2 px-1">
-            <span className="text-xs text-navy-400">Reasoning depth:</span>
+            <span className="text-xs text-zinc-400">Reasoning depth:</span>
             <div className="flex gap-1">
               {(['surface', 'moderate', 'deep'] as const).map(level => (
                 <div
@@ -627,16 +627,16 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
                   className={`h-2 w-8 rounded-full ${
                     aiAnalysis.reasoningQuality === level
                       ? level === 'deep' ? 'bg-emerald-500' : level === 'moderate' ? 'bg-amber-500' : 'bg-red-400'
-                      : 'bg-navy-100'
+                      : 'bg-zinc-100'
                   }`}
                 />
               ))}
             </div>
-            <span className="text-xs text-navy-500 capitalize">{aiAnalysis.reasoningQuality}</span>
+            <span className="text-xs text-zinc-500 capitalize">{aiAnalysis.reasoningQuality}</span>
           </div>
 
           <div className="card">
-            <h3 className="text-sm font-semibold text-navy-700 mb-3">Colony Status</h3>
+            <h3 className="text-sm font-semibold text-zinc-300 mb-3">Colony Status</h3>
             <ScoreBar scores={runningScores} />
           </div>
 
