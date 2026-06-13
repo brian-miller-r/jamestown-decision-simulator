@@ -40,8 +40,8 @@ const useCaseTiles: UseCaseTile[] = [
     iconClass: 'text-amber-600',
   },
   {
-    title: 'Historical Scene Generation',
-    description: 'Decision-based visuals make Jamestown tradeoffs vivid and memorable.',
+    title: 'SOL Scene Generation',
+    description: 'AI-generated visuals make concepts across all SOL modules vivid and memorable.',
     eyebrow: 'Visuals',
     icon: Image,
     borderClass: 'border-violet-200',
