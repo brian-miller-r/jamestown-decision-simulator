@@ -37,9 +37,9 @@ export default function SimulatorHomeView({ onNavigate }: { onNavigate: (v: View
         <div className="max-w-6xl w-full">
           <div className="grid md:grid-cols-2 gap-8 items-stretch">
             <div className="card p-8 md:p-10 min-h-[520px] flex flex-col border-2 border-zinc-100">
-              <h2 className="text-3xl font-bold text-zinc-200 mb-4">I'm a Teacher</h2>
+              <h2 className="text-3xl font-bold text-zinc-100 mb-4">I'm a Teacher</h2>
               <div className="min-h-[88px]">
-                <p className="text-zinc-400 text-base leading-relaxed">
+                <p className="text-zinc-300 text-base leading-relaxed">
                   Launch a standards-aligned simulation in minutes and leave class with clear,
                   actionable reteach priorities.
                 </p>
@@ -61,7 +61,7 @@ export default function SimulatorHomeView({ onNavigate }: { onNavigate: (v: View
               </div>
               <div className="mt-8 min-h-[172px]">
                 <h3 className="text-xs font-bold uppercase tracking-wide text-zinc-500">How teachers are using it</h3>
-                <ul className="mt-3 space-y-2 text-sm text-zinc-300 list-disc pl-5">
+                <ul className="mt-3 space-y-2 text-sm text-zinc-200 list-disc pl-5">
                   <li>Whole-class warm-up before Virginia Studies review.</li>
                   <li>Small-group intervention for misconception-heavy standards.</li>
                   <li>Data-backed parent conversation examples.</li>
@@ -70,9 +70,9 @@ export default function SimulatorHomeView({ onNavigate }: { onNavigate: (v: View
             </div>
 
             <div className="card p-8 md:p-10 min-h-[520px] flex flex-col border-2 border-zinc-100">
-              <h2 className="text-3xl font-bold text-zinc-200 mb-4">I'm a Student</h2>
+              <h2 className="text-3xl font-bold text-zinc-100 mb-4">I'm a Student</h2>
               <div className="min-h-[88px]">
-                <p className="text-zinc-400 text-base leading-relaxed">
+                <p className="text-zinc-300 text-base leading-relaxed">
                   Step into Jamestown, make decisions, explain your thinking, and get instant coaching
                   on how your choices affect the colony.
                 </p>
@@ -94,7 +94,7 @@ export default function SimulatorHomeView({ onNavigate }: { onNavigate: (v: View
               </div>
               <div className="mt-8 min-h-[172px]">
                 <h3 className="text-xs font-bold uppercase tracking-wide text-zinc-500">Where students use it</h3>
-                <ul className="mt-3 space-y-2 text-sm text-zinc-300 list-disc pl-5">
+                <ul className="mt-3 space-y-2 text-sm text-zinc-200 list-disc pl-5">
                   <li>Center rotation activity during social studies block.</li>
                   <li>At-home SOL prep with guided reasoning prompts.</li>
                   <li>Post-lesson reflection and practice before quizzes.</li>
@@ -105,7 +105,7 @@ export default function SimulatorHomeView({ onNavigate }: { onNavigate: (v: View
         </div>
       </main>
 
-      <footer className="text-center py-6 text-zinc-400 text-xs">
+      <footer className="text-center py-6 text-zinc-500 text-xs">
         VS.3 &amp; VS.4 Aligned &middot; Virginia Standards of Learning &middot; Powered by Gemini AI
       </footer>
     </div>

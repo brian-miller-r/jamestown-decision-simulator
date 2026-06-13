@@ -31,9 +31,9 @@ export default function StudentJoinView({ onJoin, onBack }: Props) {
 
   return (
     <div className="min-h-screen bg-zinc-50">
-      <header className="bg-zinc-900 border-b border-zinc-100">
+      <header className="bg-zinc-900 border-b border-zinc-800">
         <div className="max-w-md mx-auto px-6 py-4 flex items-center gap-3">
-          <button onClick={onBack} className="text-zinc-500 hover:text-zinc-300 transition-colors">
+          <button onClick={onBack} className="text-zinc-400 hover:text-zinc-100 transition-colors">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <h1 className="text-lg font-bold text-zinc-200">Join Session</h1>
@@ -57,7 +57,8 @@ export default function StudentJoinView({ onJoin, onBack }: Props) {
               onChange={e => { setCode(e.target.value); setError(''); }}
               placeholder="e.g. JMS1607"
               className="w-full px-4 py-3 border-2 border-zinc-100 rounded-lg text-lg tracking-widest font-semibold
-                         focus:border-zinc-500 focus:outline-none transition-colors text-center uppercase"
+                         focus:border-zinc-500 focus:outline-none transition-colors text-center uppercase
+                         bg-zinc-50 text-zinc-900 placeholder-zinc-500"
               maxLength={8}
             />
           </div>
@@ -72,7 +73,8 @@ export default function StudentJoinView({ onJoin, onBack }: Props) {
               onChange={e => { setName(e.target.value); setError(''); }}
               placeholder="Enter your first name"
               className="w-full px-4 py-3 border-2 border-zinc-100 rounded-lg text-lg
-                         focus:border-zinc-500 focus:outline-none transition-colors"
+                         focus:border-zinc-500 focus:outline-none transition-colors
+                         bg-zinc-50 text-zinc-900 placeholder-zinc-500"
               maxLength={20}
             />
           </div>

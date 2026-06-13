@@ -137,7 +137,7 @@ export default function TeacherDashboardView({ sessionId, onNavigate }: Props) {
           <div className="card border-2 border-blue-200 bg-gradient-to-br from-white to-blue-50/40">
             <div className="flex items-center gap-2 mb-4">
               <BookOpen className="w-5 h-5 text-blue-600" />
-              <h2 className="text-lg font-bold text-zinc-200">Top 3 Reteach Priorities (Teach Tomorrow)</h2>
+              <h2 className="text-lg font-bold text-zinc-900">Top 3 Reteach Priorities (Teach Tomorrow)</h2>
             </div>
             <div className="space-y-4">
               {reteachPriorities.map(priority => (
@@ -215,7 +215,7 @@ export default function TeacherDashboardView({ sessionId, onNavigate }: Props) {
           <div className="card border-2 border-amber-200 bg-gradient-to-br from-white to-amber-50/30">
             <div className="flex items-center gap-2 mb-4">
               <Brain className="w-6 h-6 text-amber-500" />
-              <h2 className="text-lg font-bold text-zinc-200">AI-Detected Patterns</h2>
+              <h2 className="text-lg font-bold text-zinc-900">AI-Detected Patterns</h2>
               <span className="text-xs bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
                 <Sparkles className="w-3 h-3" /> AI ANALYSIS
               </span>
@@ -232,20 +232,20 @@ export default function TeacherDashboardView({ sessionId, onNavigate }: Props) {
                       <span className={`text-xs font-bold uppercase px-2 py-0.5 rounded ${
                         insight.severity === 'high' ? 'bg-red-200 text-red-800' :
                         insight.severity === 'medium' ? 'bg-amber-200 text-amber-800' :
-                        'bg-zinc-200 text-zinc-200'
+                        'bg-zinc-200 text-zinc-700'
                       }`}>
                         {insight.severity} priority
                       </span>
-                      <span className="font-bold text-zinc-200 text-sm">{insight.pattern}</span>
+                      <span className="font-bold text-zinc-900 text-sm">{insight.pattern}</span>
                     </div>
                     <span className="text-xs text-zinc-400">
                       {insight.students.join(', ')}
                     </span>
                   </div>
-                  <p className="text-zinc-300 text-sm leading-relaxed mb-2">{insight.description}</p>
-                  <div className="flex items-start gap-2 bg-zinc-900/60 rounded p-2">
+                  <p className="text-zinc-700 text-sm leading-relaxed mb-2">{insight.description}</p>
+                  <div className="flex items-start gap-2 bg-zinc-100 rounded p-2">
                     <BookOpen className="w-4 h-4 text-blue-600 mt-0.5 shrink-0" />
-                    <p className="text-sm text-zinc-400"><span className="font-semibold">Teaching move:</span> {insight.reteachSuggestion}</p>
+                    <p className="text-sm text-zinc-700"><span className="font-semibold">Teaching move:</span> {insight.reteachSuggestion}</p>
                   </div>
                 </div>
               ))}
@@ -268,8 +268,8 @@ export default function TeacherDashboardView({ sessionId, onNavigate }: Props) {
                   <div key={tag} className="flex items-start gap-3 bg-blue-50 rounded-lg p-3">
                     <ArrowRight className="w-4 h-4 text-blue-600 mt-0.5 shrink-0" />
                     <div>
-                      <div className="font-semibold text-zinc-200 text-sm">{meta.label}</div>
-                      <div className="text-sm text-zinc-400">{meta.reteachAction}</div>
+                      <div className="font-semibold text-zinc-900 text-sm">{meta.label}</div>
+                      <div className="text-sm text-zinc-700">{meta.reteachAction}</div>
                     </div>
                   </div>
                 );
@@ -307,7 +307,7 @@ export default function TeacherDashboardView({ sessionId, onNavigate }: Props) {
                       <p className="text-zinc-300 text-sm leading-relaxed mb-2">{comp.analysis}</p>
                       <div className="flex items-start gap-2 bg-blue-50 rounded p-2">
                         <BookOpen className="w-4 h-4 text-blue-600 mt-0.5 shrink-0" />
-                        <p className="text-sm text-zinc-400"><span className="font-semibold">Teaching move:</span> {comp.teachingMove}</p>
+                        <p className="text-sm text-zinc-700"><span className="font-semibold">Teaching move:</span> {comp.teachingMove}</p>
                       </div>
                     </div>
                   ))}
@@ -325,8 +325,8 @@ export default function TeacherDashboardView({ sessionId, onNavigate }: Props) {
               {results.map(r => (
                 <div key={r.id} className="flex items-center justify-between p-3 bg-zinc-50 rounded-lg">
                   <div>
-                    <span className="font-semibold text-zinc-200">{r.displayName}</span>
-                    <span className="text-zinc-400 text-sm ml-2">
+                    <span className="font-semibold text-zinc-900">{r.displayName}</span>
+                    <span className="text-zinc-700 text-sm ml-2">
                       Score: {Object.values(r.finalScores).reduce((a, b) => a + b, 0)}/400
                     </span>
                   </div>

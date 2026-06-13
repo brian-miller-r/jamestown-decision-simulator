@@ -67,19 +67,19 @@ export default function SettingsView() {
 
         {/* Page header */}
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-zinc-100">Settings</h1>
-          <p className="text-sm text-zinc-500 mt-1">Configure your simulator preferences</p>
+          <h1 className="text-2xl font-bold text-zinc-900">Settings</h1>
+          <p className="text-sm text-zinc-600 mt-1">Configure your simulator preferences</p>
         </div>
         {/* Gemini key card */}
-        <div className="bg-zinc-900 rounded-2xl border border-zinc-100 shadow-md overflow-hidden mb-6">
+        <div className="bg-white rounded-2xl border border-zinc-200 shadow-md overflow-hidden mb-6">
 
           {/* Card header */}
-          <div className="flex items-center gap-3 px-6 py-5 border-b border-zinc-100 bg-zinc-50/60">
+          <div className="flex items-center gap-3 px-6 py-5 border-b border-zinc-200 bg-zinc-50">
             <div className="w-9 h-9 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
               <Key className="w-4 h-4 text-amber-600" />
             </div>
             <div className="flex-1">
-              <p className="text-sm font-semibold text-zinc-100">Gemini API Key</p>
+              <p className="text-sm font-semibold text-zinc-900">Gemini API Key</p>
               <p className="text-xs text-zinc-500">Powers real-time AI coaching &amp; analysis</p>
             </div>
             {isGeminiActive && (
@@ -114,7 +114,7 @@ export default function SettingsView() {
                 href="https://aistudio.google.com/app/apikey"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-zinc-300 font-medium underline underline-offset-2 inline-flex items-center gap-0.5 hover:text-zinc-100"
+                className="text-zinc-700 font-medium underline underline-offset-2 inline-flex items-center gap-0.5 hover:text-zinc-900"
               >
                 Get a free key <ExternalLink className="w-3 h-3" />
               </a>
@@ -122,7 +122,7 @@ export default function SettingsView() {
 
             {/* Input row */}
             <div className="space-y-2">
-              <label htmlFor="gemini-api-key" className="text-xs font-semibold text-zinc-300 uppercase tracking-wide">
+              <label htmlFor="gemini-api-key" className="text-xs font-semibold text-zinc-600 uppercase tracking-wide">
                 {isGeminiActive ? 'Replace key' : 'Enter your key'}
               </label>
               <div className="relative">
@@ -134,12 +134,12 @@ export default function SettingsView() {
                   placeholder="AIzaSy..."
                   autoComplete="off"
                   spellCheck={false}
-                  className="w-full px-4 py-3 pr-11 text-sm border-2 border-zinc-200 rounded-xl focus:border-zinc-500 focus:outline-none font-mono bg-zinc-50 text-zinc-100 placeholder-zinc-400 transition-colors"
+                  className="w-full px-4 py-3 pr-11 text-sm border-2 border-zinc-200 rounded-xl focus:border-zinc-500 focus:outline-none font-mono bg-zinc-50 text-zinc-900 placeholder-zinc-500 transition-colors"
                 />
                 <button
                   type="button"
                   onClick={() => setShowGeminiKey(!showGeminiKey)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-400 transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-700 transition-colors"
                   aria-label={showGeminiKey ? 'Hide key' : 'Show key'}
                 >
                   {showGeminiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -178,13 +178,13 @@ export default function SettingsView() {
         </div>
 
         {/* xAI key card */}
-        <div className="bg-zinc-900 rounded-2xl border border-zinc-100 shadow-md overflow-hidden">
-          <div className="flex items-center gap-3 px-6 py-5 border-b border-zinc-100 bg-zinc-50/60">
+        <div className="bg-white rounded-2xl border border-zinc-200 shadow-md overflow-hidden">
+          <div className="flex items-center gap-3 px-6 py-5 border-b border-zinc-200 bg-zinc-50">
             <div className="w-9 h-9 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
               <Key className="w-4 h-4 text-blue-600" />
             </div>
             <div className="flex-1">
-              <p className="text-sm font-semibold text-zinc-100">xAI API Key (Optional)</p>
+              <p className="text-sm font-semibold text-zinc-900">xAI API Key (Optional)</p>
               <p className="text-xs text-zinc-500">Fallback provider for decision-scene image generation</p>
             </div>
             {isXaiActive && (
@@ -212,7 +212,7 @@ export default function SettingsView() {
             </p>
 
             <div className="space-y-2">
-              <label htmlFor="xai-api-key" className="text-xs font-semibold text-zinc-300 uppercase tracking-wide">
+              <label htmlFor="xai-api-key" className="text-xs font-semibold text-zinc-600 uppercase tracking-wide">
                 {isXaiActive ? 'Replace key' : 'Enter your key'}
               </label>
               <div className="relative">
@@ -224,12 +224,12 @@ export default function SettingsView() {
                   placeholder="xai-..."
                   autoComplete="off"
                   spellCheck={false}
-                  className="w-full px-4 py-3 pr-11 text-sm border-2 border-zinc-200 rounded-xl focus:border-zinc-500 focus:outline-none font-mono bg-zinc-50 text-zinc-100 placeholder-zinc-400 transition-colors"
+                  className="w-full px-4 py-3 pr-11 text-sm border-2 border-zinc-200 rounded-xl focus:border-zinc-500 focus:outline-none font-mono bg-zinc-50 text-zinc-900 placeholder-zinc-500 transition-colors"
                 />
                 <button
                   type="button"
                   onClick={() => setShowXaiKey(!showXaiKey)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-400 transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-700 transition-colors"
                   aria-label={showXaiKey ? 'Hide key' : 'Show key'}
                 >
                   {showXaiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -266,7 +266,7 @@ export default function SettingsView() {
           </div>
         </div>
         {/* Footer note */}
-        <p className="text-center text-xs text-zinc-400 mt-8">
+        <p className="text-center text-xs text-zinc-500 mt-8">
           VS.3 &amp; VS.4 Aligned · Virginia Standards of Learning
         </p>
       </div>

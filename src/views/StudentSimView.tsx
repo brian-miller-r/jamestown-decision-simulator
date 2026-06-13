@@ -321,27 +321,30 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
                 Standard: {session.standard}
               </span>
             </div>
-            <p className="text-zinc-400 text-sm leading-relaxed mb-4">{adaptedContext}</p>
+            <p className="text-zinc-300 text-sm leading-relaxed mb-4">{adaptedContext}</p>
             <h2 className="text-lg font-bold text-zinc-200">{adaptedPrompt}</h2>
           </div>
 
           <div className="space-y-3 mb-6">
-            {node.options.map(opt => (
-              <button
-                key={opt.id}
-                onClick={() => setSelectedOption(opt.id)}
-                className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
-                  selectedOption === opt.id
-                    ? 'border-zinc-700 bg-zinc-50'
-                    : 'border-zinc-100 bg-zinc-900 hover:border-zinc-300'
-                }`}
-              >
-                <span className="font-semibold text-zinc-200">{opt.shortText}</span>
-                <span className="block text-sm text-zinc-500 mt-1">
-                  {adaptForReadingLevel(opt.text, session.readingLevel)}
-                </span>
-              </button>
-            ))}
+            {node.options.map(opt => {
+              const isSelected = selectedOption === opt.id;
+              return (
+                <button
+                  key={opt.id}
+                  onClick={() => setSelectedOption(opt.id)}
+                  className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
+                    isSelected
+                      ? 'border-zinc-400 bg-zinc-100'
+                      : 'border-zinc-700 bg-zinc-900 hover:border-zinc-500'
+                  }`}
+                >
+                  <span className={`font-semibold ${isSelected ? 'text-zinc-900' : 'text-zinc-100'}`}>{opt.shortText}</span>
+                  <span className={`block text-sm mt-1 ${isSelected ? 'text-zinc-700' : 'text-zinc-300'}`}>
+                    {adaptForReadingLevel(opt.text, session.readingLevel)}
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
           {selectedOption && (
@@ -357,7 +360,7 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
                     if (dictationError) setDictationError('');
                   }}
                   placeholder="The AI coach will analyze your reasoning — be specific about your thinking!"
-                  className="w-full px-4 py-3 pr-16 pb-14 border-2 border-zinc-100 rounded-lg focus:border-zinc-500 focus:outline-none transition-colors resize-none"
+                  className="w-full px-4 py-3 pr-16 pb-14 border-2 border-zinc-100 rounded-lg focus:border-zinc-500 focus:outline-none transition-colors resize-none bg-zinc-50 text-zinc-900 placeholder-zinc-500"
                   rows={3}
                 />
                 <button
@@ -374,7 +377,7 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
                   className={`group absolute bottom-3 right-3 w-11 h-11 rounded-full border flex items-center justify-center transition-colors ${
                     isDictating
                       ? 'border-amber-400 bg-amber-100 text-amber-700'
-                      : 'border-zinc-200 bg-zinc-900 text-zinc-400 hover:bg-zinc-50'
+                      : 'border-zinc-700 bg-zinc-800 text-zinc-200 hover:bg-zinc-700'
                   }`}
                   aria-label="Dictate"
                 >

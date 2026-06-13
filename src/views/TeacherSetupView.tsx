@@ -70,7 +70,7 @@ export default function TeacherSetupView({ onNavigate }: { onNavigate: (v: View)
           <h2 className="text-2xl font-bold text-zinc-200 mb-2">Session Ready!</h2>
           <p className="text-zinc-400 mb-6">Share this code with your students:</p>
           <div className="bg-zinc-50 border-2 border-zinc-200 rounded-lg py-4 px-6 mb-6">
-            <span className="text-3xl font-bold tracking-widest text-zinc-100">{session.code}</span>
+            <span className="text-3xl font-bold tracking-widest text-zinc-900">{session.code}</span>
           </div>
           <p className="text-zinc-500 text-sm mb-6">
             Students go to "I'm a Student" and enter this code to begin.
@@ -90,9 +90,9 @@ export default function TeacherSetupView({ onNavigate }: { onNavigate: (v: View)
 
   return (
     <div className="min-h-screen bg-zinc-50">
-      <header className="bg-zinc-900 border-b border-zinc-100">
+      <header className="bg-zinc-900 border-b border-zinc-800">
         <div className="max-w-xl mx-auto px-6 py-4 flex items-center gap-3">
-          <button onClick={() => onNavigate({ kind: 'home' })} className="text-zinc-500 hover:text-zinc-300 transition-colors">
+          <button onClick={() => onNavigate({ kind: 'home' })} className="text-zinc-400 hover:text-zinc-100 transition-colors">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <h1 className="text-lg font-bold text-zinc-200">Create Session</h1>
@@ -121,8 +121,8 @@ export default function TeacherSetupView({ onNavigate }: { onNavigate: (v: View)
                   }}
                   className={`p-4 rounded-lg border-2 text-left transition-all ${
                     standard === s
-                      ? 'border-zinc-700 bg-zinc-50 text-zinc-100'
-                      : 'border-zinc-100 bg-zinc-900 text-zinc-400 hover:border-zinc-300'
+                      ? 'border-amber-400 bg-amber-50 text-zinc-900'
+                      : 'border-zinc-700 bg-zinc-900 text-zinc-200 hover:border-zinc-500'
                   }`}
                 >
                   <div className="font-bold text-lg">{s}</div>
@@ -141,7 +141,7 @@ export default function TeacherSetupView({ onNavigate }: { onNavigate: (v: View)
               >
                 <div className="flex items-center gap-2">
                   <Lightbulb className="w-5 h-5 text-blue-600" />
-                  <span className="font-semibold text-zinc-200">About this standard</span>
+                  <span className="font-semibold text-zinc-900">About this standard</span>
                 </div>
                 <ChevronDown className={`w-5 h-5 text-blue-600 transition-transform ${expandedStandard ? 'rotate-180' : ''}`} />
               </button>
@@ -151,14 +151,14 @@ export default function TeacherSetupView({ onNavigate }: { onNavigate: (v: View)
                   {standard === 'VS.3' ? (
                     <>
                       <div>
-                        <h4 className="font-semibold text-zinc-200 mb-1">VS.3: First Permanent Settlement (1607-1608)</h4>
-                        <p className="text-zinc-300">
+                        <h4 className="font-semibold text-zinc-900 mb-1">VS.3: First Permanent Settlement (1607-1608)</h4>
+                        <p className="text-zinc-700">
                           Students make <strong>survival decisions</strong> as the first 104 English settlers arrive in Virginia. Focus: where to build, how to relate to the Powhatan, food production, and leadership in a crisis.
                         </p>
                       </div>
-                      <div className="bg-zinc-900/60 rounded p-3 space-y-2">
-                        <div className="font-semibold text-zinc-200">Decision Points:</div>
-                        <ul className="text-zinc-300 space-y-1 ml-4 list-disc">
+                      <div className="bg-blue-100/70 rounded p-3 space-y-2">
+                        <div className="font-semibold text-zinc-900">Decision Points:</div>
+                        <ul className="text-zinc-800 space-y-1 ml-4 list-disc">
                           <li>Choosing a settlement location (inland vs. coastal vs. peninsula)</li>
                           <li>Managing relations with the Powhatan people</li>
                           <li>Food production strategies (English crops vs. local methods)</li>
@@ -169,14 +169,14 @@ export default function TeacherSetupView({ onNavigate }: { onNavigate: (v: View)
                   ) : (
                     <>
                       <div>
-                        <h4 className="font-semibold text-zinc-200 mb-1">VS.4: Colonial Virginia (1620s-1640s)</h4>
-                        <p className="text-zinc-300">
+                        <h4 className="font-semibold text-zinc-900 mb-1">VS.4: Colonial Virginia (1620s-1640s)</h4>
+                        <p className="text-zinc-700">
                           Students navigate <strong>systemic choices</strong> as Virginia grows: expansion vs. negotiation, cash crops vs. self-sufficiency, indentured servants vs. slavery, and planter oligarchy vs. broader democracy.
                         </p>
                       </div>
-                      <div className="bg-zinc-900/60 rounded p-3 space-y-2">
-                        <div className="font-semibold text-zinc-200">Decision Points:</div>
-                        <ul className="text-zinc-300 space-y-1 ml-4 list-disc">
+                      <div className="bg-blue-100/70 rounded p-3 space-y-2">
+                        <div className="font-semibold text-zinc-900">Decision Points:</div>
+                        <ul className="text-zinc-800 space-y-1 ml-4 list-disc">
                           <li>Expansion strategy (rapid inland growth vs. negotiated borders vs. trading posts)</li>
                           <li>Economic model (tobacco plantations vs. diverse exports vs. self-sufficiency)</li>
                           <li>Labor systems (indentured servants vs. Native American slavery vs. African slavery)</li>
@@ -208,7 +208,7 @@ export default function TeacherSetupView({ onNavigate }: { onNavigate: (v: View)
                   type="file"
                   accept=".txt,.docx,.pdf,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                   onChange={handleSampleFileChange}
-                  className="block w-full text-sm text-zinc-400 file:mr-3 file:rounded-md file:border-0 file:bg-zinc-100 file:px-3 file:py-2 file:font-semibold file:text-zinc-200 hover:file:bg-zinc-200"
+                  className="block w-full text-sm text-zinc-300 file:mr-3 file:rounded-md file:border-0 file:bg-zinc-200 file:px-3 file:py-2 file:font-semibold file:text-zinc-900 hover:file:bg-zinc-300"
                 />
                 {sampleFileName && (
                   <p className="text-xs text-zinc-500 mt-1">Loaded file: {sampleFileName}</p>
@@ -228,7 +228,7 @@ export default function TeacherSetupView({ onNavigate }: { onNavigate: (v: View)
                   }}
                   rows={6}
                   placeholder="Paste student writing sample here..."
-                  className="w-full px-4 py-3 border-2 border-zinc-100 rounded-lg focus:border-zinc-500 focus:outline-none transition-colors resize-y"
+                  className="w-full px-4 py-3 border-2 border-zinc-100 rounded-lg focus:border-zinc-500 focus:outline-none transition-colors resize-y bg-zinc-50 text-zinc-900 placeholder-zinc-500"
                 />
               </div>
 
@@ -249,21 +249,21 @@ export default function TeacherSetupView({ onNavigate }: { onNavigate: (v: View)
 
               {analysis && (
                 <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 space-y-2">
-                  <p className="text-sm text-zinc-200">
+                  <p className="text-sm text-emerald-900">
                     Suggested reading level:{' '}
                     <span className="font-bold">
                       {readingLevelLabel(analysis.suggestedLevel)}
                     </span>
                   </p>
-                  <p className="text-sm text-zinc-300">
+                  <p className="text-sm text-emerald-800">
                     Estimated grade {analysis.estimatedGrade.toFixed(1)} &middot; Confidence {analysis.confidence}
                   </p>
-                  <ul className="text-sm text-zinc-300 list-disc pl-5 space-y-1">
+                  <ul className="text-sm text-emerald-800 list-disc pl-5 space-y-1">
                     {analysis.rationale.map(reason => (
                       <li key={reason}>{reason}</li>
                     ))}
                   </ul>
-                  <p className="text-xs text-zinc-500">
+                  <p className="text-xs text-emerald-700">
                     Applied to the Reading Level setting below. You can still adjust it manually.
                   </p>
                 </div>
@@ -290,8 +290,8 @@ export default function TeacherSetupView({ onNavigate }: { onNavigate: (v: View)
                   }}
                   className={`p-3 rounded-lg border-2 text-center transition-all ${
                     readingLevel === r.val
-                      ? 'border-zinc-700 bg-zinc-50 text-zinc-100'
-                      : 'border-zinc-100 bg-zinc-900 text-zinc-400 hover:border-zinc-300'
+                      ? 'border-amber-400 bg-amber-50 text-zinc-900'
+                      : 'border-zinc-700 bg-zinc-900 text-zinc-200 hover:border-zinc-500'
                   }`}
                 >
                   <div className="font-bold text-sm">{r.label}</div>
@@ -309,7 +309,7 @@ export default function TeacherSetupView({ onNavigate }: { onNavigate: (v: View)
                 >
                   <div className="flex items-center gap-2">
                     <Lightbulb className="w-5 h-5 text-amber-600" />
-                    <span className="font-semibold text-zinc-200">Reading level examples</span>
+                    <span className="font-semibold text-zinc-900">Reading level examples</span>
                   </div>
                   <ChevronDown className={`w-5 h-5 text-amber-600 transition-transform ${expandedReadingLevel ? 'rotate-180' : ''}`} />
                 </button>
@@ -318,14 +318,14 @@ export default function TeacherSetupView({ onNavigate }: { onNavigate: (v: View)
                   {readingLevel === 'below' && (
                     <div className="space-y-3">
                       <div>
-                        <div className="font-semibold text-zinc-200 mb-2">Below Grade Level — Simpler Language</div>
-                        <p className="text-zinc-300 bg-zinc-900/60 rounded p-3">
+                        <div className="font-semibold text-zinc-900 mb-2">Below Grade Level — Simpler Language</div>
+                        <p className="text-zinc-800 bg-amber-100/70 rounded p-3">
                           "The English settlers came to a new land. They did not know this place. The Powhatan people lived here. Should the settlers ask the Powhatan for help? Or should they try to do it alone?"
                         </p>
                       </div>
-                      <div className="bg-zinc-900/60 rounded p-3">
-                        <div className="font-semibold text-zinc-200 mb-2">Use this level if students:</div>
-                        <ul className="text-zinc-300 space-y-1 ml-4 list-disc">
+                      <div className="bg-amber-100/70 rounded p-3">
+                        <div className="font-semibold text-zinc-900 mb-2">Use this level if students:</div>
+                        <ul className="text-zinc-800 space-y-1 ml-4 list-disc">
                           <li>Struggle with multi-clause sentences</li>
                           <li>Benefit from short, direct statements</li>
                           <li>Need simplified vocabulary without losing meaning</li>
@@ -337,14 +337,14 @@ export default function TeacherSetupView({ onNavigate }: { onNavigate: (v: View)
                   {readingLevel === 'on' && (
                     <div className="space-y-3">
                       <div>
-                        <div className="font-semibold text-zinc-200 mb-2">On Grade Level (Grade 4) — Clear, Standard Text</div>
-                        <p className="text-zinc-300 bg-zinc-900/60 rounded p-3">
+                        <div className="font-semibold text-zinc-900 mb-2">On Grade Level (Grade 4) — Clear, Standard Text</div>
+                        <p className="text-zinc-800 bg-amber-100/70 rounded p-3">
                           "In May 1607, English settlers arrived at the Chesapeake Bay. The Powhatan people had lived there for thousands of years. The settlers needed food and shelter. They could trade with the Powhatan, demand supplies, or try to farm on their own. What would you choose?"
                         </p>
                       </div>
-                      <div className="bg-zinc-900/60 rounded p-3">
-                        <div className="font-semibold text-zinc-200 mb-2">Use this level if students:</div>
-                        <ul className="text-zinc-300 space-y-1 ml-4 list-disc">
+                      <div className="bg-amber-100/70 rounded p-3">
+                        <div className="font-semibold text-zinc-900 mb-2">Use this level if students:</div>
+                        <ul className="text-zinc-800 space-y-1 ml-4 list-disc">
                           <li>Read at typical grade 4 fluency</li>
                           <li>Handle multi-sentence scenarios comfortably</li>
                           <li>Understand grade-level vocabulary in context</li>
@@ -356,14 +356,14 @@ export default function TeacherSetupView({ onNavigate }: { onNavigate: (v: View)
                   {readingLevel === 'above' && (
                     <div className="space-y-3">
                       <div>
-                        <div className="font-semibold text-zinc-200 mb-2">Above Grade Level — Rich Detail and Complexity</div>
-                        <p className="text-zinc-300 bg-zinc-900/60 rounded p-3">
+                        <div className="font-semibold text-zinc-900 mb-2">Above Grade Level — Rich Detail and Complexity</div>
+                        <p className="text-zinc-800 bg-amber-100/70 rounded p-3">
                           "The Powhatan Confederacy, comprising over thirty tributary tribes, had cultivated sophisticated agricultural practices and maintained complex diplomatic relations for centuries. The English settlers' arrival disrupted these established systems, forcing difficult negotiations about land ownership, resource allocation, and sovereignty. Colonial expansion inevitably raised questions about coexistence versus displacement."
                         </p>
                       </div>
-                      <div className="bg-zinc-900/60 rounded p-3">
-                        <div className="font-semibold text-zinc-200 mb-2">Use this level if students:</div>
-                        <ul className="text-zinc-300 space-y-1 ml-4 list-disc">
+                      <div className="bg-amber-100/70 rounded p-3">
+                        <div className="font-semibold text-zinc-900 mb-2">Use this level if students:</div>
+                        <ul className="text-zinc-800 space-y-1 ml-4 list-disc">
                           <li>Read advanced vocabulary (confederacy, tributary, sophistication)</li>
                           <li>Grasp nuanced cause-and-effect relationships</li>
                           <li>Engage with longer, more complex sentence structures</li>

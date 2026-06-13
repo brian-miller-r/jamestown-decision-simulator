@@ -91,13 +91,13 @@ export default function PasswordGate({ children }: PasswordGateProps) {
                 className={`w-full pr-10 pl-4 py-3 rounded-xl border text-sm font-medium transition-all duration-200 outline-none focus:ring-2 ${
                   error
                     ? 'border-red-400 focus:ring-red-200 bg-red-50 text-red-900 placeholder-red-300'
-                    : 'border-zinc-200 focus:ring-zinc-200 focus:border-zinc-400 bg-zinc-50 text-zinc-100 placeholder-zinc-400'
+                    : 'border-zinc-200 focus:ring-zinc-200 focus:border-zinc-400 bg-zinc-50 text-zinc-900 placeholder-zinc-500'
                 }`}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-400 transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-700 transition-colors"
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
