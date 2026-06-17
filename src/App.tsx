@@ -3,7 +3,7 @@ import type { LucideIcon } from 'lucide-react';
 import { BarChart3, ChevronLeft, ChevronRight, FileText, GraduationCap, Home, LogIn, Menu, Settings, Brain, Gamepad2, X } from 'lucide-react';
 import type { View } from './data/types';
 import { DEMO_SESSION_ID, seedDemoData } from './data/seed';
-import { getResult, getResults } from './data/store';
+import { getResult, getResults, getSessions } from './data/store';
 import PlatformHomeView from './views/PlatformHomeView';
 import SimulatorHomeView from './views/SimulatorHomeView';
 import TeacherSetupView from './views/TeacherSetupView';
@@ -100,7 +100,7 @@ export default function App() {
               return (
                 <button
                   key={item.id}
-                  onClick={() => requestNavigation(item.target, item.label)}
+                  onClick={() => requestNavigation(resolveNavItemTarget(item, view), item.label)}
                   title={item.label}
                   className={`w-full flex items-center px-2 py-2 rounded-lg text-left transition-colors ${
                     desktopNavCollapsed ? 'justify-center' : 'gap-2'
@@ -187,7 +187,7 @@ export default function App() {
                   return (
                     <button
                       key={item.id}
-                      onClick={() => requestNavigation(item.target, item.label)}
+                      onClick={() => requestNavigation(resolveNavItemTarget(item, view), item.label)}
                       className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
                         active
                           ? 'bg-zinc-800 text-zinc-100 font-semibold'
@@ -277,10 +277,34 @@ function renderView(view: View, navigate: (v: View) => void) {
   }
 }
 
+function resolveNavItemTarget(item: NavItem, view: View): View {
+  if (item.id === 'teacher-dashboard') return resolveTeacherDashboardTarget(view);
+  if (item.id === 'student-debrief') return resolveStudentDebriefTarget(view);
+  return item.target;
+}
+
 function resolveTeacherDashboardTarget(view: View): View {
   const sessionId = sessionIdFromView(view);
-  if (!sessionId) return { kind: 'teacher-setup' };
-  return { kind: 'teacher-dashboard', sessionId };
+  if (sessionId) return { kind: 'teacher-dashboard', sessionId };
+
+  const recentCompleted = mostRecentCompletedResult();
+  if (recentCompleted) {
+    return { kind: 'teacher-dashboard', sessionId: recentCompleted.sessionId };
+  }
+
+  const recentResult = getResults()
+    .sort((a, b) => b.completedAt - a.completedAt)[0];
+  if (recentResult) {
+    return { kind: 'teacher-dashboard', sessionId: recentResult.sessionId };
+  }
+
+  const recentSession = getSessions()
+    .sort((a, b) => b.createdAt - a.createdAt)[0];
+  if (recentSession) {
+    return { kind: 'teacher-dashboard', sessionId: recentSession.id };
+  }
+
+  return { kind: 'teacher-setup' };
 }
 
 function resolveStudentDebriefTarget(view: View): View {

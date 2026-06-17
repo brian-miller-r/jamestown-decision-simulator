@@ -1,0 +1,757 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SOLTutor.AI - 5 Minute Pitch</title>
+  <style>
+    :root {
+      --bg: #eff2f8;
+      --panel: #f7f8fc;
+      --panel-soft: #eef2f8;
+      --text: #0f172a;
+      --muted: #56607a;
+      --accent: #4f46e5;
+      --accent-2: #0ea5a5;
+      --warning: #f97316;
+      --ok: #34d399;
+      --danger: #f43f5e;
+      --border: #d5dcec;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: Inter, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background:
+        radial-gradient(circle at 15% 10%, rgba(109, 134, 204, 0.28), transparent 40%),
+        radial-gradient(circle at 80% 85%, rgba(152, 176, 219, 0.22), transparent 35%),
+        var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow: hidden;
+    }
+
+    .deck {
+      height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+    }
+
+    .hud {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.9rem 1.3rem;
+      border-bottom: 1px solid var(--border);
+      background: rgba(245, 247, 252, 0.86);
+      backdrop-filter: blur(8px);
+    }
+
+    .brand {
+      font-size: 0.9rem;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .brand strong {
+      color: #111827;
+      margin-right: 0.45rem;
+    }
+
+    .timer-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+    }
+
+    .timer-btn {
+      border: 1px solid #bcc8e5;
+      color: #1f2c4a;
+      background: rgba(232, 238, 251, 0.95);
+      border-radius: 999px;
+      padding: 0.3rem 0.7rem;
+      cursor: pointer;
+      font-size: 0.78rem;
+      font-weight: 600;
+    }
+
+    .timer-btn:hover {
+      background: rgba(213, 224, 247, 0.95);
+    }
+
+    .timer {
+      font-size: 1rem;
+      font-variant-numeric: tabular-nums;
+      color: #111827;
+      font-weight: 700;
+      min-width: 4.2rem;
+      text-align: right;
+    }
+
+    .timer.over {
+      color: #fecdd3;
+    }
+
+    .slide-counter {
+      font-size: 0.88rem;
+      color: var(--muted);
+      font-weight: 600;
+      min-width: 4.8rem;
+      text-align: right;
+    }
+
+    #slides {
+      position: relative;
+      padding: clamp(1rem, 2.3vw, 2rem);
+    }
+
+    .slide {
+      position: absolute;
+      inset: clamp(1rem, 2.3vw, 2rem);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: clamp(1.4rem, 3.2vw, 2.8rem);
+      background: linear-gradient(180deg, rgba(250, 251, 255, 0.98), rgba(243, 246, 252, 0.98));
+      display: none;
+      overflow: auto;
+      box-shadow: 0 24px 52px rgba(70, 87, 128, 0.18);
+    }
+
+    .slide.active {
+      display: grid;
+      align-content: center;
+      gap: clamp(0.7rem, 1.3vw, 1.35rem);
+      animation: fadeUp 260ms ease;
+    }
+
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .time-chip {
+      display: inline-flex;
+      border-radius: 999px;
+      border: 1px solid #f97316;
+      color: #ea580c;
+      background: rgba(249, 115, 22, 0.08);
+      font-size: 0.9rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-weight: 700;
+      padding: 0.3rem 0.72rem;
+      margin-bottom: 0.25rem;
+      justify-self: start;
+    }
+
+    h1 {
+      font-size: clamp(2rem, 4.8vw, 3.8rem);
+      line-height: 1.07;
+      margin-bottom: 0.9rem;
+      letter-spacing: -0.01em;
+    }
+
+    h2 {
+      font-size: clamp(2rem, 4.6vw, 4rem);
+      line-height: 1.2;
+      margin-bottom: 0.15rem;
+    }
+
+    h3 {
+      font-size: clamp(1.25rem, 2.4vw, 1.9rem);
+      color: #0f172a;
+      margin-bottom: 0.35rem;
+    }
+
+    p.lead {
+      color: #3f485f;
+      font-size: clamp(1.2rem, 2.35vw, 2rem);
+      max-width: 78ch;
+      line-height: 1.36;
+      margin-bottom: 0.5rem;
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .accent {
+      color: #0d9488;
+      font-weight: 700;
+    }
+
+    ul.clean {
+      list-style: none;
+      display: grid;
+      gap: 0.95rem;
+      margin-top: 0.2rem;
+    }
+
+    ul.clean li {
+      border-left: 3px solid #647db3;
+      padding: 0.8rem 1rem;
+      color: #1f2937;
+      line-height: 1.4;
+      font-size: clamp(1.03rem, 1.75vw, 1.4rem);
+      background: rgba(231, 237, 249, 0.7);
+      border-radius: 8px;
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 1.4rem;
+      align-items: stretch;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(250px, 1fr));
+      gap: 1rem;
+      margin-top: 0.15rem;
+    }
+
+    .stat {
+      border: 1px solid #ccd5ea;
+      background: rgba(238, 242, 250, 0.88);
+      border-radius: 14px;
+      padding: 1rem 1.15rem;
+      min-height: 170px;
+      display: grid;
+      align-content: center;
+    }
+
+    .stat .num {
+      font-size: clamp(2rem, 4vw, 3.3rem);
+      font-weight: 800;
+      color: #0f172a;
+      margin-bottom: 0.35rem;
+    }
+
+    .stat .label {
+      color: #48536e;
+      font-size: clamp(0.96rem, 1.35vw, 1.24rem);
+      line-height: 1.35;
+    }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(150px, 1fr));
+      gap: 0.9rem;
+      margin-top: 0.1rem;
+      align-items: stretch;
+    }
+
+    .node {
+      border: 1px solid #ccd6ed;
+      background: rgba(234, 239, 250, 0.8);
+      border-radius: 12px;
+      padding: 0.9rem;
+      color: #25324a;
+      font-size: clamp(0.95rem, 1.2vw, 1.15rem);
+      line-height: 1.3;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 120px;
+    }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(250px, 1fr));
+      gap: 1rem;
+      margin-top: 0.15rem;
+    }
+
+    .feature {
+      border-radius: 12px;
+      border: 1px solid #cad6ee;
+      background: rgba(237, 242, 252, 0.9);
+      padding: 1rem 1.1rem;
+      min-height: 175px;
+    }
+
+    .feature p {
+      color: #49566f;
+      font-size: clamp(0.98rem, 1.4vw, 1.22rem);
+      line-height: 1.36;
+    }
+
+    .demo {
+      display: grid;
+      place-items: center;
+      text-align: center;
+      height: calc(100% - 1rem);
+    }
+
+    .demo .big {
+      font-size: clamp(2.5rem, 6.5vw, 5.6rem);
+      line-height: 1.06;
+      margin-bottom: 0.5rem;
+      font-weight: 900;
+      color: #0f172a;
+      letter-spacing: -0.02em;
+    }
+
+    .demo .sub {
+      color: #47546c;
+      font-size: clamp(1.2rem, 2.55vw, 2rem);
+      margin-bottom: 1rem;
+    }
+
+    .demo-steps {
+      list-style: none;
+      display: grid;
+      gap: 0.5rem;
+      max-width: 820px;
+      margin-top: 0.25rem;
+      text-align: left;
+    }
+
+    .demo-steps li {
+      border: 1px solid #c8d5ef;
+      background: rgba(236, 242, 252, 0.88);
+      border-radius: 10px;
+      padding: 0.85rem 0.95rem;
+      color: #1f2c43;
+      font-size: clamp(0.98rem, 1.3vw, 1.25rem);
+    }
+
+    .sources {
+      margin-top: 0.8rem;
+      font-size: clamp(0.86rem, 1.05vw, 1.05rem);
+      color: #61708f;
+      line-height: 1.35;
+    }
+
+    .controls {
+      border-top: 1px solid var(--border);
+      background: rgba(246, 248, 253, 0.92);
+      backdrop-filter: blur(8px);
+      padding: 0.7rem 1rem;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 0.7rem;
+    }
+
+    .nav-btns {
+      display: flex;
+      gap: 0.45rem;
+    }
+
+    .nav-btn {
+      border: 1px solid #c0cde8;
+      background: rgba(235, 240, 251, 0.95);
+      color: #1f2d4a;
+      border-radius: 8px;
+      padding: 0.38rem 0.65rem;
+      font-weight: 600;
+      font-size: 0.84rem;
+      cursor: pointer;
+    }
+
+    .nav-btn:hover {
+      background: rgba(221, 230, 247, 0.95);
+    }
+
+    .progress {
+      width: 100%;
+      height: 8px;
+      border-radius: 999px;
+      border: 1px solid #ced9ef;
+      background: rgba(227, 234, 248, 0.88);
+      overflow: hidden;
+    }
+
+    .bar {
+      height: 100%;
+      width: 12.5%;
+      background: linear-gradient(90deg, #7c9cff, #5eead4);
+      transition: width 200ms ease;
+    }
+
+    .hint {
+      color: #607096;
+      font-size: 0.8rem;
+      white-space: nowrap;
+    }
+
+    .home-hero {
+      min-height: 100%;
+      display: grid;
+      place-items: center;
+      text-align: center;
+    }
+
+    .home-top-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.7rem;
+      border: none;
+      background: transparent;
+      color: #5a637a;
+      font-size: 1.05rem;
+      margin-bottom: 1.05rem;
+      font-weight: 500;
+    }
+
+    .home-top-link .chev {
+      color: #7c88a7;
+      font-size: 1.15rem;
+      transform: translateY(-1px);
+    }
+
+    .new-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      border: 1.5px solid #f97316;
+      color: #f97316;
+      background: rgba(249, 115, 22, 0.07);
+      padding: 0.18rem 0.62rem;
+      font-size: 0.82rem;
+      line-height: 1;
+      font-weight: 600;
+    }
+
+    .home-kicker {
+      text-transform: uppercase;
+      letter-spacing: 0.28em;
+      color: #6a748c;
+      font-size: 0.78rem;
+      font-weight: 700;
+      margin-bottom: 0.42rem;
+    }
+
+    .home-title {
+      margin-bottom: 0.8rem;
+      font-size: clamp(2.2rem, 5.8vw, 5rem);
+      line-height: 1.02;
+      font-weight: 900;
+      color: #0b0c10;
+      letter-spacing: -0.02em;
+    }
+
+    .home-title .underline {
+      text-decoration: underline;
+      text-underline-offset: 10px;
+      text-decoration-thickness: 4px;
+      text-decoration-color: rgba(128, 138, 162, 0.7);
+    }
+
+    .home-sub {
+      max-width: 820px;
+      margin: 0 auto;
+      color: #51596b;
+      font-size: clamp(1rem, 2.2vw, 1.72rem);
+      line-height: 1.35;
+    }
+
+    .hero-cta {
+      margin-top: 1.25rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.78rem 1.52rem;
+      border-radius: 999px;
+      border: 1px solid #1f2430;
+      background: #090b10;
+      color: #f9fbff;
+      font-size: 1.18rem;
+      font-weight: 700;
+      box-shadow: 0 12px 24px rgba(35, 44, 66, 0.25);
+    }
+
+    @media (max-width: 960px) {
+      .split {
+        grid-template-columns: 1fr;
+      }
+      .cards {
+        grid-template-columns: 1fr;
+      }
+
+      .flow {
+        grid-template-columns: repeat(2, minmax(120px, 1fr));
+      }
+
+      .feature-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="deck">
+    <header class="hud">
+      <div class="brand"><strong>SOLTutor.AI</strong> 5-minute investor/demo pitch</div>
+      <div class="timer-wrap">
+        <button class="timer-btn" id="timerBtn">Start 5:00</button>
+        <div class="timer" id="timer">05:00</div>
+      </div>
+      <div class="slide-counter" id="counter">1 / 8</div>
+    </header>
+
+    <main id="slides">
+      <section class="slide active">
+        <div class="home-hero">
+          <div>
+            <div class="home-top-link">
+              <span class="new-pill">New</span>
+              <span>Virginia Studies SOL</span>
+              <span class="chev">›</span>
+            </div>
+            <div class="home-kicker">SOLTutor.AI</div>
+            <h1 class="home-title">
+              Personalized AI learning for every
+              <br />
+              <span class="underline">Virginia SOL.</span>
+            </h1>
+            <p class="home-sub">
+              An advanced AI learning platform covering all Virginia Standards of Learning for elementary and middle school students.
+            </p>
+            <div class="hero-cta">Get Started <span>→</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide">
+        <span class="time-chip">0:45</span>
+        <h2>This problem is personal for me.</h2>
+        <div class="split">
+          <div>
+            <ul class="clean">
+              <li>I have <strong>two boys</strong>—one in elementary school, one in middle school.</li>
+              <li>I want to help them study without turning every evening into worksheet battles.</li>
+              <li>I also want to introduce them to <strong>AI responsibly</strong>—as a thinking tool, not a shortcut.</li>
+              <li>Most study tools today force a tradeoff: <strong>test prep OR engagement OR AI literacy.</strong></li>
+            </ul>
+          </div>
+          <div class="feature">
+            <h3>What families need</h3>
+            <p>
+              A simple, motivating study experience that builds content mastery, reasoning skills, and future-ready AI fluency.
+            </p>
+            <h3 style="margin-top: 0.7rem;">What teachers need</h3>
+            <p>
+              Fast visibility into misconceptions so reteaching is targeted, not guesswork.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide">
+        <span class="time-chip">0:45</span>
+        <h2>Why now: outcomes are urgent, and AI is already here.</h2>
+        <div class="cards">
+          <div class="stat">
+            <div class="num">31%</div>
+            <div class="label">of U.S. 4th graders scored at/above NAEP Proficient in reading (2024).</div>
+          </div>
+          <div class="stat">
+            <div class="num">40%</div>
+            <div class="label">of U.S. 4th graders were below NAEP Basic in reading (2024).</div>
+          </div>
+          <div class="stat">
+            <div class="num">45%</div>
+            <div class="label">of adolescents reported using ChatGPT-like tools in the past month.</div>
+          </div>
+          <div class="stat">
+            <div class="num">+5 mo / +4 mo</div>
+            <div class="label">Potential tutoring gains: one-to-one up to 5 months; small-group up to 4 months.</div>
+          </div>
+        </div>
+        <p class="lead" style="margin-top: 0.8rem;">
+          The opportunity: combine the <strong>effectiveness of targeted tutoring</strong> with the <strong>engagement and scale of AI</strong>.
+        </p>
+        <div class="sources">
+          Sources: NAEP 2024 Reading Results (nationsreportcard.gov); Odgers et al., NSF national mixed-methods summary (2024);
+          UK DfE Tutoring Guidance (2024) citing EEF evidence.
+        </div>
+      </section>
+
+      <section class="slide">
+        <span class="time-chip">0:45</span>
+        <h2>The idea: SOLTutor.AI = SOL mastery + AI literacy.</h2>
+        <p class="lead">Students learn by making decisions, explaining reasoning, and getting coaching—while teachers see exactly where support is needed.</p>
+        <div class="flow">
+          <div class="node">SOL scenario prompt</div>
+          <div class="node">Student chooses + explains why</div>
+          <div class="node">AI coaching on reasoning quality</div>
+          <div class="node">Misconceptions captured automatically</div>
+          <div class="node">Teacher gets targeted reteach priorities</div>
+        </div>
+        <ul class="clean" style="margin-top: 0.9rem;">
+          <li>Starts with one module, expands into a reusable engine for <strong>all Virginia SOL domains</strong>.</li>
+          <li>Teaches students <strong>how to think with AI</strong>, not just how to get answers from AI.</li>
+        </ul>
+      </section>
+
+      <section class="slide">
+        <span class="time-chip">0:40</span>
+        <h2>What’s already built in the app</h2>
+        <div class="feature-grid">
+          <div class="feature">
+            <h3>Interactive Student Simulation</h3>
+            <p>Branching decision flow with score impact across key learning dimensions.</p>
+          </div>
+          <div class="feature">
+            <h3>Reasoning Coach</h3>
+            <p>Students get immediate feedback on depth and quality of their explanation.</p>
+          </div>
+          <div class="feature">
+            <h3>Teacher Dashboard</h3>
+            <p>Class trends, misconception clustering, and suggested reteach actions.</p>
+          </div>
+          <div class="feature">
+            <h3>Accessibility Supports</h3>
+            <p>Reading-level adaptation, optional voice input, and browser-first simplicity.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide">
+        <span class="time-chip">2:00 demo</span>
+        <div class="demo">
+          <div class="big">Live Demo</div>
+          <div class="sub">“Let me show you how this works in under 2 minutes.”</div>
+          <ul class="demo-steps">
+            <li><strong>1)</strong> Create a session and show how fast setup is.</li>
+            <li><strong>2)</strong> Student joins with a code and completes one decision + reasoning response.</li>
+            <li><strong>3)</strong> Show AI coaching and how reasoning gets stronger in real time.</li>
+            <li><strong>4)</strong> Jump to teacher dashboard: misconception insight + reteach next step.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="slide">
+        <span class="time-chip">0:35</span>
+        <h2>Post-demo: why this matters</h2>
+        <ul class="clean">
+          <li><strong>For students:</strong> more engagement, stronger reasoning, and confidence using AI productively.</li>
+          <li><strong>For parents:</strong> a practical way to support study time at home without friction.</li>
+          <li><strong>For teachers:</strong> immediate insight into who needs help and exactly where.</li>
+          <li><strong>For schools:</strong> a modular platform that can expand across SOL subjects with the same core engine.</li>
+        </ul>
+      </section>
+
+      <section class="slide">
+        <span class="time-chip">0:25</span>
+        <h2>Closing: the vision and the ask</h2>
+        <p class="lead">
+          Vision: make SOLTutor.AI the go-to AI study layer for <strong>every Virginia SOL module</strong>—not just one unit.
+        </p>
+        <ul class="clean">
+          <li><strong>Next milestone:</strong> expand module library, run classroom pilots, and track learning growth.</li>
+          <li><strong>Ask:</strong> pilot partners, educator feedback loops, and warm intros to districts/funders.</li>
+          <li><strong>Bottom line:</strong> better outcomes for kids now, and better AI readiness for their future.</li>
+        </ul>
+        <p class="lead" style="margin-top: 0.95rem;">Thank you — I’d love your feedback.</p>
+      </section>
+    </main>
+
+    <footer class="controls">
+      <div class="nav-btns">
+        <button class="nav-btn" id="prevBtn">← Prev</button>
+        <button class="nav-btn" id="nextBtn">Next →</button>
+      </div>
+      <div class="progress"><div class="bar" id="bar"></div></div>
+      <div class="hint">Use ← → / Space • Press F for fullscreen</div>
+    </footer>
+  </div>
+
+  <script>
+    const slides = Array.from(document.querySelectorAll('.slide'));
+    const bar = document.getElementById('bar');
+    const counter = document.getElementById('counter');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    let current = 0;
+
+    function render() {
+      slides.forEach((slide, i) => slide.classList.toggle('active', i === current));
+      counter.textContent = `${current + 1} / ${slides.length}`;
+      bar.style.width = `${((current + 1) / slides.length) * 100}%`;
+    }
+
+    function next() {
+      current = Math.min(current + 1, slides.length - 1);
+      render();
+    }
+
+    function prev() {
+      current = Math.max(current - 1, 0);
+      render();
+    }
+
+    prevBtn.addEventListener('click', prev);
+    nextBtn.addEventListener('click', next);
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowRight' || event.key === ' ') {
+        event.preventDefault();
+        next();
+      } else if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        prev();
+      } else if (event.key.toLowerCase() === 'f') {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen?.();
+        } else {
+          document.exitFullscreen?.();
+        }
+      }
+    });
+
+    // Simple 5-minute countdown
+    const timerEl = document.getElementById('timer');
+    const timerBtn = document.getElementById('timerBtn');
+    let duration = 5 * 60;
+    let remaining = duration;
+    let interval = null;
+
+    function formatTime(totalSeconds) {
+      const abs = Math.abs(totalSeconds);
+      const minutes = Math.floor(abs / 60).toString().padStart(2, '0');
+      const seconds = (abs % 60).toString().padStart(2, '0');
+      return `${totalSeconds < 0 ? '-' : ''}${minutes}:${seconds}`;
+    }
+
+    function tick() {
+      remaining -= 1;
+      timerEl.textContent = formatTime(remaining);
+      if (remaining < 0) timerEl.classList.add('over');
+    }
+
+    timerBtn.addEventListener('click', () => {
+      if (interval) {
+        clearInterval(interval);
+        interval = null;
+        timerBtn.textContent = 'Resume';
+        return;
+      }
+      if (remaining === duration) {
+        timerBtn.textContent = 'Pause';
+      } else {
+        timerBtn.textContent = 'Pause';
+      }
+      interval = setInterval(tick, 1000);
+    });
+  </script>
+</body>
+</html>

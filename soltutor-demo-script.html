@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SOLTutor.AI Demo Script</title>
+  <style>
+    :root {
+      --bg: #f3f5fa;
+      --panel: #ffffff;
+      --text: #111827;
+      --muted: #4b5563;
+      --line: #d8deec;
+      --blue: #1d4ed8;
+      --green: #047857;
+      --red: #b91c1c;
+      --amber: #b45309;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: Inter, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.45;
+      padding: 1.2rem;
+    }
+
+    .page {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      gap: 1rem;
+    }
+
+    .hero {
+      background: linear-gradient(180deg, #ffffff, #f7f9ff);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 1.2rem;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.8rem;
+    }
+
+    .hero h1 {
+      font-size: clamp(1.4rem, 3vw, 2rem);
+      margin-bottom: 0.2rem;
+    }
+
+    .hero p {
+      color: var(--muted);
+      font-size: 1rem;
+      max-width: 760px;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 0.55rem;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      border: 1px solid #b9c6e8;
+      background: #edf3ff;
+      color: #0f2b66;
+      border-radius: 999px;
+      padding: 0.45rem 0.85rem;
+      font-size: 0.9rem;
+      font-weight: 700;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .btn.dark {
+      background: #0b1220;
+      border-color: #0b1220;
+      color: #f8fafc;
+    }
+
+    .section {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 1rem;
+    }
+
+    .section h2 {
+      font-size: 1.15rem;
+      margin-bottom: 0.55rem;
+    }
+
+    .grid {
+      display: grid;
+      gap: 0.8rem;
+      grid-template-columns: repeat(2, minmax(260px, 1fr));
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #f8faff;
+      padding: 0.85rem;
+      display: grid;
+      gap: 0.5rem;
+    }
+
+    .tag {
+      width: fit-content;
+      border-radius: 999px;
+      padding: 0.16rem 0.55rem;
+      font-size: 0.73rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .tag.wrong {
+      color: #7f1d1d;
+      background: #fee2e2;
+      border: 1px solid #fecaca;
+    }
+
+    .tag.correct {
+      color: #065f46;
+      background: #d1fae5;
+      border: 1px solid #a7f3d0;
+    }
+
+    .meta {
+      font-size: 0.9rem;
+      color: #1f2937;
+    }
+
+    .meta strong {
+      color: #0f172a;
+    }
+
+    .text {
+      width: 100%;
+      border: 1px solid #cdd7ec;
+      border-radius: 10px;
+      padding: 0.62rem;
+      background: #ffffff;
+      color: #0f172a;
+      min-height: 118px;
+      font-size: 0.94rem;
+      resize: vertical;
+    }
+
+    .copy-btn {
+      width: fit-content;
+      border: 1px solid #bfd0f2;
+      border-radius: 8px;
+      background: #ecf3ff;
+      color: #123d84;
+      padding: 0.35rem 0.65rem;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .script-list {
+      list-style: none;
+      display: grid;
+      gap: 0.55rem;
+      margin-top: 0.35rem;
+    }
+
+    .script-list li {
+      border-left: 3px solid #93a9d7;
+      background: #f4f7ff;
+      border-radius: 8px;
+      padding: 0.55rem 0.75rem;
+      font-size: 0.95rem;
+      color: #1f2937;
+    }
+
+    .small {
+      font-size: 0.86rem;
+      color: var(--muted);
+    }
+
+    .highlight {
+      color: var(--amber);
+      font-weight: 700;
+    }
+
+    @media (max-width: 880px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="hero">
+      <div>
+        <h1>SOLTutor.AI Demo Script (VS.3 • Single Page)</h1>
+        <p>Use this during your live pitch. It includes your talk track and pre-generated student responses for the VS.3 Jamestown flow.</p>
+      </div>
+      <div class="btn-row">
+        <a class="btn dark" href="http://localhost:5173" target="_blank" rel="noopener noreferrer">Open App</a>
+        <button class="btn" onclick="window.print()">Print / Save PDF</button>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>2-Minute Live Demo Run-of-Show (VS.3)</h2>
+      <ul class="script-list">
+        <li><strong>Step 1 (20s):</strong> Start a session and select <strong>VS.3</strong> to show setup is easy.</li>
+        <li><strong>Step 2 (25s):</strong> Join as a student and make one decision.</li>
+        <li><strong>Step 3 (35s):</strong> Use the <span class="highlight">intentional wrong response</span> below to show coaching catches misconceptions.</li>
+        <li><strong>Step 4 (20s):</strong> Switch to a corrected response to show growth in reasoning quality.</li>
+        <li><strong>Step 5 (20s):</strong> Jump to teacher dashboard and show misconception insights + reteach next move.</li>
+      </ul>
+    </section>
+
+    <section class="section">
+      <h2>Presenter Lines (Say This Verbatim if Helpful)</h2>
+      <ul class="script-list">
+        <li>“I’m going to submit one intentionally inaccurate student response so you can see the AI coaching in action.”</li>
+        <li>“Notice how it doesn’t just mark it wrong—it explains the historical misconception and nudges deeper thinking.”</li>
+        <li>“Now I’ll submit a stronger response and you can see the quality of feedback shift.”</li>
+        <li>“For teachers, this becomes immediate class-level insight: where misconceptions are clustering and what to reteach tomorrow.”</li>
+      </ul>
+    </section>
+
+    <section class="section">
+      <h2>Pre-Generated Student Responses (VS.3 • Copy/Paste Ready)</h2>
+      <p class="small" style="margin-bottom:0.65rem;">At least one intentionally wrong response is included below for the coaching moment. All prompts below are for VS.3 across all 4 decisions.</p>
+
+      <div class="grid">
+        <article class="card">
+          <span class="tag wrong">Intentional inaccurate response</span>
+          <div class="meta"><strong>Decision:</strong> Choosing a Settlement Location (Decision 1)</div>
+          <div class="meta"><strong>Option to click:</strong> Up the river, deep inland</div>
+          <textarea id="resp-wrong-0" class="text" readonly>We should go deep inland where nobody can find us. Being far away from the coast is safest, and then enemies cannot attack us by ship.</textarea>
+          <button class="copy-btn" data-copy="resp-wrong-0">Copy response</button>
+        </article>
+
+        <article class="card">
+          <span class="tag correct">Corrected response</span>
+          <div class="meta"><strong>Decision:</strong> Choosing a Settlement Location (Decision 1)</div>
+          <div class="meta"><strong>Option to click:</strong> A peninsula up the river</div>
+          <textarea id="resp-correct-0" class="text" readonly>A peninsula gives some defense because water protects three sides, and ships can still reach us with supplies. It is a better balance than hiding deep inland where supply routes are harder.</textarea>
+          <button class="copy-btn" data-copy="resp-correct-0">Copy response</button>
+        </article>
+        <article class="card">
+          <span class="tag wrong">Intentional inaccurate response</span>
+          <div class="meta"><strong>Decision:</strong> Meeting the Powhatan</div>
+          <div class="meta"><strong>Option to click:</strong> Demand what we need</div>
+          <textarea id="resp-wrong-1" class="text" readonly>We should demand corn because we have better weapons and are stronger. If they refuse, we can force them to give us supplies since this land belongs to England now.</textarea>
+          <button class="copy-btn" data-copy="resp-wrong-1">Copy response</button>
+        </article>
+
+        <article class="card">
+          <span class="tag correct">Corrected response</span>
+          <div class="meta"><strong>Decision:</strong> Meeting the Powhatan</div>
+          <div class="meta"><strong>Option to click:</strong> Trade and negotiate</div>
+          <textarea id="resp-correct-1" class="text" readonly>We should trade and negotiate because the Powhatan know this land and can help the colony survive. Working together gives us food now and reduces conflict later, which is better than trying to control people by force.</textarea>
+          <button class="copy-btn" data-copy="resp-correct-1">Copy response</button>
+        </article>
+
+        <article class="card">
+          <span class="tag wrong">Intentional inaccurate response</span>
+          <div class="meta"><strong>Decision:</strong> Food and Crop Strategy</div>
+          <div class="meta"><strong>Option to click:</strong> Wait for ships from England</div>
+          <textarea id="resp-wrong-2" class="text" readonly>I think we should wait for England to send ships with food because they will eventually rescue us. It is safer to ration what we have instead of trying new farming ideas here.</textarea>
+          <button class="copy-btn" data-copy="resp-wrong-2">Copy response</button>
+        </article>
+
+        <article class="card">
+          <span class="tag correct">Corrected response</span>
+          <div class="meta"><strong>Decision:</strong> Food and Crop Strategy</div>
+          <div class="meta"><strong>Option to click:</strong> Learn the Three Sisters method</div>
+          <textarea id="resp-correct-2" class="text" readonly>The best choice is to learn the Three Sisters method because it matches local soil and seasons. If we adapt and grow food locally, the colony is less dependent on delayed ships and more likely to survive winter.</textarea>
+          <button class="copy-btn" data-copy="resp-correct-2">Copy response</button>
+        </article>
+
+        <article class="card">
+          <span class="tag wrong">Intentional inaccurate response</span>
+          <div class="meta"><strong>Decision:</strong> Leadership and Government (Decision 4)</div>
+          <div class="meta"><strong>Option to click:</strong> Follow the Virginia Company rules</div>
+          <textarea id="resp-wrong-3" class="text" readonly>We should follow the Virginia Company rules because leaders in England know better than us and we should obey what the king says. They are in charge, so their plan should work here.</textarea>
+          <button class="copy-btn" data-copy="resp-wrong-3">Copy response</button>
+        </article>
+
+        <article class="card">
+          <span class="tag correct">Corrected response</span>
+          <div class="meta"><strong>Decision:</strong> Leadership and Government (Decision 4)</div>
+          <div class="meta"><strong>Option to click:</strong> Governing ourselves together</div>
+          <textarea id="resp-correct-3" class="text" readonly>The colony should make local rules together because people living in Jamestown understand daily problems better than leaders far away in England. A local assembly can adjust faster when food, safety, and trade needs change.</textarea>
+          <button class="copy-btn" data-copy="resp-correct-3">Copy response</button>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Demo Checklist (Fast)</h2>
+      <ul class="script-list">
+        <li>Use one wrong response first → highlight coaching correction.</li>
+        <li>Use one corrected response second → highlight stronger reasoning feedback.</li>
+        <li>Show teacher dashboard misconception tags before closing demo.</li>
+      </ul>
+    </section>
+  </main>
+
+  <script>
+    document.querySelectorAll('[data-copy]').forEach((button) => {
+      button.addEventListener('click', async () => {
+        const id = button.getAttribute('data-copy');
+        const el = document.getElementById(id);
+        if (!el) return;
+        try {
+          await navigator.clipboard.writeText(el.value);
+          const original = button.textContent;
+          button.textContent = 'Copied!';
+          setTimeout(() => { button.textContent = original; }, 1000);
+        } catch {
+          el.select();
+          document.execCommand('copy');
+          const original = button.textContent;
+          button.textContent = 'Copied!';
+          setTimeout(() => { button.textContent = original; }, 1000);
+        }
+      });
+    });
+  </script>
+</body>
+</html>
