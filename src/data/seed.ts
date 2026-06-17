@@ -207,6 +207,12 @@ function buildDemoStudentResult(template: DemoStudentTemplate, index: number, ba
   };
 }
 
+function buildSeededDemoResults(baseTime: number): StudentResult[] {
+  return demoStudentTemplates.map((template, index) =>
+    computeResultWithAI(buildDemoStudentResult(template, index, baseTime), 'VS.3')
+  );
+}
+
 function computeResultWithAI(r: StudentResult, standard: 'VS.3' | 'VS.4'): StudentResult {
   const decisionNodes = getDecisionNodes(standard);
   const scores = computeScores(r.decisions, decisionNodes);
@@ -235,30 +241,40 @@ function computeResultWithAI(r: StudentResult, standard: 'VS.3' | 'VS.4'): Stude
 
 export function seedDemoData() {
   const sessions = getSessions();
-  if (sessions.find(s => s.id === DEMO_SESSION_ID)) return;
-
-  const demoSession: Session = {
-    id: DEMO_SESSION_ID,
-    code: DEMO_SESSION_CODE,
-    standard: 'VS.3',
-    readingLevel: 'on',
-    createdAt: Date.now() - 60000,
-  };
-
-  sessions.push(demoSession);
-  localStorage.setItem('jamestown_sessions', JSON.stringify(sessions));
+  const demoSessionExists = sessions.some(s => s.id === DEMO_SESSION_ID);
+  if (!demoSessionExists) {
+    const demoSession: Session = {
+      id: DEMO_SESSION_ID,
+      code: DEMO_SESSION_CODE,
+      standard: 'VS.3',
+      readingLevel: 'on',
+      createdAt: Date.now() - 60000,
+    };
+    sessions.push(demoSession);
+    localStorage.setItem('jamestown_sessions', JSON.stringify(sessions));
+  }
 
   const results = getResults();
-  const baseTime = Date.now() - 2 * 60_000;
-  const demoResults = demoStudentTemplates.map((template, index) =>
-    computeResultWithAI(buildDemoStudentResult(template, index, baseTime), 'VS.3')
-  );
-  results.push(...demoResults);
-  localStorage.setItem('jamestown_results', JSON.stringify(results));
+  const expectedIds = new Set(demoStudentTemplates.map(student => student.id));
+  const demoResults = results.filter(result => result.sessionId === DEMO_SESSION_ID);
+  const nonDemoResults = results.filter(result => result.sessionId !== DEMO_SESSION_ID);
+
+  const demoNeedsRefresh =
+    demoResults.length !== demoStudentTemplates.length ||
+    demoResults.some(result => !expectedIds.has(result.id));
+
+  if (demoNeedsRefresh) {
+    const baseTime = Date.now() - 2 * 60_000;
+    const seededDemoResults = buildSeededDemoResults(baseTime);
+    localStorage.setItem('jamestown_results', JSON.stringify([...nonDemoResults, ...seededDemoResults]));
+  }
 }
 
 export function resetDemoData() {
-  localStorage.removeItem('jamestown_sessions');
-  localStorage.removeItem('jamestown_results');
+  const sessions = getSessions().filter(session => session.id !== DEMO_SESSION_ID);
+  localStorage.setItem('jamestown_sessions', JSON.stringify(sessions));
+
+  const nonDemoResults = getResults().filter(result => result.sessionId !== DEMO_SESSION_ID);
+  localStorage.setItem('jamestown_results', JSON.stringify(nonDemoResults));
   seedDemoData();
 }
