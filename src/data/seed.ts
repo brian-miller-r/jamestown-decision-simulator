@@ -30,13 +30,13 @@ const demoStudentTemplates: DemoStudentTemplate[] = [
     ],
   },
   {
-    id: 'demo-student-maya',
-    displayName: 'Maya',
+    id: 'demo-student-lucas',
+    displayName: 'Lucas',
     decisions: [
-      { nodeId: 'location', optionId: 'coastal-port', reasoning: 'A coastal port keeps trade and supply routes open.' },
-      { nodeId: 'powhatan', optionId: 'trade-negotiate', reasoning: 'Negotiation is safer long term than starting conflict.' },
-      { nodeId: 'food-strategy', optionId: 'three-sisters', reasoning: 'Learning local farming gives faster results than guessing.' },
-      { nodeId: 'governance', optionId: 'strong-leader', reasoning: 'In a crisis, a strong leader can organize work quickly.' },
+      { nodeId: 'location', optionId: 'inland-river', reasoning: 'We should go deep inland so we are hidden and safe from attacks.' },
+      { nodeId: 'powhatan', optionId: 'force-demand', reasoning: 'We have better weapons, so we can demand what we need.' },
+      { nodeId: 'food-strategy', optionId: 'wait-supply-ship', reasoning: 'England will send ships, so we should wait for rescue and supplies.' },
+      { nodeId: 'governance', optionId: 'company-rules', reasoning: 'The company says they are in charge, so we should obey orders.' },
     ],
   },
   {
@@ -70,13 +70,13 @@ const demoStudentTemplates: DemoStudentTemplate[] = [
     ],
   },
   {
-    id: 'demo-student-lucas',
-    displayName: 'Lucas',
+    id: 'demo-student-maya',
+    displayName: 'Maya',
     decisions: [
-      { nodeId: 'location', optionId: 'inland-river', reasoning: 'We should go deep inland so we are hidden and safe from attacks.' },
-      { nodeId: 'powhatan', optionId: 'force-demand', reasoning: 'We have better weapons, so we can demand what we need.' },
-      { nodeId: 'food-strategy', optionId: 'wait-supply-ship', reasoning: 'England will send ships, so we should wait for rescue and supplies.' },
-      { nodeId: 'governance', optionId: 'company-rules', reasoning: 'The company says they are in charge, so we should obey orders.' },
+      { nodeId: 'location', optionId: 'coastal-port', reasoning: 'A coastal port keeps trade and supply routes open.' },
+      { nodeId: 'powhatan', optionId: 'trade-negotiate', reasoning: 'Negotiation is safer long term than starting conflict.' },
+      { nodeId: 'food-strategy', optionId: 'three-sisters', reasoning: 'Learning local farming gives faster results than guessing.' },
+      { nodeId: 'governance', optionId: 'strong-leader', reasoning: 'In a crisis, a strong leader can organize work quickly.' },
     ],
   },
   {
@@ -206,7 +206,6 @@ function buildDemoStudentResult(template: DemoStudentTemplate, index: number, ba
     completedAt: studentStart + 50_000,
   };
 }
-};
 
 function computeResultWithAI(r: StudentResult, standard: 'VS.3' | 'VS.4'): StudentResult {
   const decisionNodes = getDecisionNodes(standard);
