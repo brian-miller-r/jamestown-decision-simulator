@@ -1,5 +1,21 @@
 import { useState } from 'react';
 import { Key, Eye, EyeOff, Check, Trash2, ShieldCheck, ExternalLink } from 'lucide-react';
+
+function normalizeApiKeyInput(value: string): string {
+  const trimmed = value.trim();
+  if (trimmed.length >= 2) {
+    const first = trimmed[0];
+    const last = trimmed[trimmed.length - 1];
+    const isWrappedQuote =
+      (first === '"' && last === '"') ||
+      (first === '\'' && last === '\'') ||
+      (first === '`' && last === '`');
+    if (isWrappedQuote) {
+      return trimmed.slice(1, -1).trim();
+    }
+  }
+  return trimmed;
+}
 function maskKey(key: string): string {
   if (!key) return '';
   if (key.length <= 12) return `${key.slice(0, 4)}••••${key.slice(-2)}`;
@@ -34,14 +50,18 @@ export default function SettingsView() {
   }
 
   function handleGeminiSave() {
-    localStorage.setItem('gemini_api_key', geminiKey.trim());
+    const normalized = normalizeApiKeyInput(geminiKey);
+    localStorage.setItem('gemini_api_key', normalized);
+    setGeminiKey(normalized);
     setGeminiDirty(false);
     setGeminiSaveSuccess(true);
     setTimeout(() => setGeminiSaveSuccess(false), 2500);
   }
 
   function handleXaiSave() {
-    localStorage.setItem('xai_api_key', xaiKey.trim());
+    const normalized = normalizeApiKeyInput(xaiKey);
+    localStorage.setItem('xai_api_key', normalized);
+    setXaiKey(normalized);
     setXaiDirty(false);
     setXaiSaveSuccess(true);
     setTimeout(() => setXaiSaveSuccess(false), 2500);

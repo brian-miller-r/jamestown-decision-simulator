@@ -88,6 +88,18 @@ export interface ReasoningAnalysis {
 }
 const REASONING_MODELS = ['gemini-3.5-flash', 'gemini-2.5-flash'] as const;
 
+function parseModelJson<T>(raw: string): T {
+  const trimmed = raw.trim();
+  try {
+    return JSON.parse(trimmed) as T;
+  } catch {
+    const unwrapped = trimmed
+      .replace(/^```(?:json)?\s*/i, '')
+      .replace(/\s*```$/, '');
+    return JSON.parse(unwrapped) as T;
+  }
+}
+
 export function analyzeReasoningSync(
   reasoning: string,
   optionId: string,
@@ -201,7 +213,9 @@ export async function analyzeReasoning(
   node: DecisionNode,
   readingLevel: 'below' | 'on' | 'above',
 ): Promise<ReasoningAnalysis> {
-  const apiKey = localStorage.getItem('gemini_api_key') || (import.meta.env.VITE_GEMINI_API_KEY as string || '');
+  const apiKey = normalizeApiKey(
+    localStorage.getItem('gemini_api_key') || (import.meta.env.VITE_GEMINI_API_KEY as string || ''),
+  );
   if (!apiKey) {
 
     return {
@@ -314,7 +328,7 @@ Analyze this response. Match it to one or more of the misconception tags if appl
       });
 
       const responseText = result.response.text();
-      const data = JSON.parse(responseText) as Omit<ReasoningAnalysis, 'analysisSource' | 'fallbackReason'>;
+      const data = parseModelJson<Omit<ReasoningAnalysis, 'analysisSource' | 'fallbackReason'>>(responseText);
       const analysis: ReasoningAnalysis = {
         ...data,
         analysisSource: 'gemini',
@@ -326,7 +340,10 @@ Analyze this response. Match it to one or more of the misconception tags if appl
       }
 
       return analysis;
-    } catch {
+    } catch (error) {
+      console.warn(
+        `[AI] Gemini model ${modelName} failed: ${truncateDebugText(unknownErrorToDebugText(error), 220)}`,
+      );
       continue;
     }
   }
