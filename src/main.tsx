@@ -4,6 +4,12 @@ import App from './App.tsx';
 import PasswordGate from './components/PasswordGate.tsx';
 import './index.css';
 
+pendo.initialize({
+  visitor: {
+    id: ''
+  }
+});
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <PasswordGate>

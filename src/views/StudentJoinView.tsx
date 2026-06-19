@@ -26,6 +26,21 @@ export default function StudentJoinView({ onJoin, onBack }: Props) {
       return;
     }
     const studentId = crypto.randomUUID();
+    pendo.identify({
+      visitor: {
+        id: studentId,
+        full_name: trimmedName,
+        displayName: trimmedName,
+        sessionId: session.id,
+        standard: session.standard,
+        completedAt: 0,
+        misconceptionTags: [],
+        survivalScore: 0,
+        economyScore: 0,
+        diplomacyScore: 0,
+        governanceScore: 0,
+      }
+    });
     onJoin({ kind: 'student-sim', sessionId: session.id, studentId, studentName: trimmedName });
   }
 
