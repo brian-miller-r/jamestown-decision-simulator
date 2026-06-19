@@ -19,6 +19,15 @@ export default function TeacherSetupView({ onNavigate }: { onNavigate: (v: View)
   function handleCreate() {
     const session = createSession(standard, readingLevel);
     setSessionId(session.id);
+
+    if (typeof pendo !== 'undefined') {
+      pendo.track('session_created', {
+        sessionId: session.id,
+        sessionCode: session.code,
+        standard,
+        readingLevel,
+      });
+    }
   }
 
   async function handleSampleFileChange(event: ChangeEvent<HTMLInputElement>) {
@@ -30,18 +39,36 @@ export default function TeacherSetupView({ onNavigate }: { onNavigate: (v: View)
     setAnalyzingSample(true);
     setSampleFileName(file.name);
 
+    const fileExtension = file.name.split('.').pop()?.toLowerCase() ?? '';
+    let extractionSuccess = false;
+    let errorMessage = '';
+    let extractedTextLength = 0;
+
     try {
       const extracted = await extractTextFromUpload(file);
       if (!extracted) {
         throw new Error('Could not extract readable text from this file.');
       }
       setWritingSample(extracted);
+      extractionSuccess = true;
+      extractedTextLength = extracted.length;
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unable to process this file.';
       setAnalysisError(message);
+      errorMessage = message;
     } finally {
       setAnalyzingSample(false);
       event.target.value = '';
+
+      if (typeof pendo !== 'undefined') {
+        pendo.track('writing_sample_uploaded', {
+          fileName: file.name,
+          fileExtension,
+          extractionSuccess,
+          errorMessage: errorMessage || undefined,
+          extractedTextLength,
+        });
+      }
     }
   }
 
@@ -57,6 +84,19 @@ export default function TeacherSetupView({ onNavigate }: { onNavigate: (v: View)
     setAnalysis(suggested);
     setReadingLevel(suggested.suggestedLevel);
     setExpandedReadingLevel(true);
+
+    if (typeof pendo !== 'undefined') {
+      pendo.track('reading_level_analyzed', {
+        suggestedLevel: suggested.suggestedLevel,
+        estimatedGrade: suggested.estimatedGrade,
+        confidence: suggested.confidence,
+        sampleWordCount: suggested.metrics.wordCount,
+        sampleSentenceCount: suggested.metrics.sentenceCount,
+        fleschKincaidGrade: suggested.metrics.fleschKincaidGrade,
+        complexWordRatio: suggested.metrics.complexWordRatio,
+        sampleSource: sampleFileName ? 'file' : 'paste',
+      });
+    }
   }
 
   if (sessionId) {

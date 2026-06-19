@@ -92,6 +92,11 @@ export default function TeacherDashboardView({ sessionId, onNavigate }: Props) {
 
   function handleResetDemo() {
     resetDemoData();
+
+    if (typeof pendo !== 'undefined') {
+      pendo.track('demo_data_reset', { sessionId: DEMO_SESSION_ID });
+    }
+
     onNavigate({ kind: 'teacher-dashboard', sessionId: DEMO_SESSION_ID });
   }
 

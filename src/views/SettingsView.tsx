@@ -16,6 +16,12 @@ function normalizeApiKeyInput(value: string): string {
   }
   return trimmed;
 }
+function categorizeKeyLength(len: number): string {
+  if (len <= 20) return 'short';
+  if (len <= 50) return 'medium';
+  return 'long';
+}
+
 function maskKey(key: string): string {
   if (!key) return '';
   if (key.length <= 12) return `${key.slice(0, 4)}••••${key.slice(-2)}`;
@@ -50,21 +56,39 @@ export default function SettingsView() {
   }
 
   function handleGeminiSave() {
+    const isReplacement = storedGeminiKey.length > 0;
     const normalized = normalizeApiKeyInput(geminiKey);
     localStorage.setItem('gemini_api_key', normalized);
     setGeminiKey(normalized);
     setGeminiDirty(false);
     setGeminiSaveSuccess(true);
     setTimeout(() => setGeminiSaveSuccess(false), 2500);
+
+    if (typeof pendo !== 'undefined') {
+      pendo.track('api_key_saved', {
+        provider: 'gemini',
+        keyLengthRange: categorizeKeyLength(normalized.length),
+        isReplacement,
+      });
+    }
   }
 
   function handleXaiSave() {
+    const isReplacement = storedXaiKey.length > 0;
     const normalized = normalizeApiKeyInput(xaiKey);
     localStorage.setItem('xai_api_key', normalized);
     setXaiKey(normalized);
     setXaiDirty(false);
     setXaiSaveSuccess(true);
     setTimeout(() => setXaiSaveSuccess(false), 2500);
+
+    if (typeof pendo !== 'undefined') {
+      pendo.track('api_key_saved', {
+        provider: 'xai',
+        keyLengthRange: categorizeKeyLength(normalized.length),
+        isReplacement,
+      });
+    }
   }
 
   function handleGeminiClear() {
@@ -72,6 +96,10 @@ export default function SettingsView() {
     setGeminiKey('');
     setGeminiDirty(false);
     setGeminiSaveSuccess(false);
+
+    if (typeof pendo !== 'undefined') {
+      pendo.track('api_key_removed', { provider: 'gemini' });
+    }
   }
 
   function handleXaiClear() {
@@ -79,6 +107,10 @@ export default function SettingsView() {
     setXaiKey('');
     setXaiDirty(false);
     setXaiSaveSuccess(false);
+
+    if (typeof pendo !== 'undefined') {
+      pendo.track('api_key_removed', { provider: 'xai' });
+    }
   }
 
   return (

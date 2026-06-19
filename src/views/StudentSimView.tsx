@@ -204,6 +204,18 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
     recognition.onerror = (event: SpeechRecognitionErrorEventLike) => {
       setIsDictating(false);
       setDictationError(errorMessageFromSpeechCode(event.error));
+
+      if (typeof pendo !== 'undefined') {
+        pendo.track('voice_dictation_used', {
+          sessionId,
+          studentId,
+          nodeId: node?.id,
+          decisionNumber: currentIdx + 1,
+          dictationSuccess: false,
+          errorCode: event.error,
+          errorMessage: errorMessageFromSpeechCode(event.error),
+        });
+      }
     };
 
     recognition.onend = () => {
@@ -239,12 +251,23 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
   function handleDictationStop() {
     const recognition = recognitionRef.current;
     if (!recognition) return;
+    const wasDictating = isDictating;
     try {
       recognition.stop();
     } catch {
       // no-op
     } finally {
       setIsDictating(false);
+    }
+
+    if (wasDictating && typeof pendo !== 'undefined') {
+      pendo.track('voice_dictation_used', {
+        sessionId,
+        studentId,
+        nodeId: node?.id,
+        decisionNumber: currentIdx + 1,
+        dictationSuccess: true,
+      });
     }
   }
 
@@ -285,7 +308,18 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
             <Brain className="w-4 h-4 text-amber-400" />
             <span>An AI coach will analyze your reasoning and give you personalized feedback</span>
           </div>
-          <button className="btn-primary bg-amber-500 hover:bg-amber-600 text-zinc-100" onClick={() => setPhase('decide')}>
+          <button className="btn-primary bg-amber-500 hover:bg-amber-600 text-zinc-100" onClick={() => {
+            if (typeof pendo !== 'undefined') {
+              pendo.track('simulation_started', {
+                sessionId,
+                studentId,
+                standard: session!.standard,
+                readingLevel: session!.readingLevel,
+                totalDecisions: decisionNodes.length,
+              });
+            }
+            setPhase('decide');
+          }}>
             Begin the Simulation
           </button>
         </div>
@@ -696,6 +730,30 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
         misconceptionTags: mergedTags,
         completedAt: 0,
       });
+
+      if (typeof pendo !== 'undefined') {
+        const chosenOpt = node.options.find(o => o.id === selectedOption);
+        pendo.track('decision_submitted', {
+          sessionId,
+          studentId,
+          nodeId: node.id,
+          nodeTitle: node.title,
+          decisionNumber: updatedDecisions.length,
+          totalDecisions: decisionNodes.length,
+          optionId: selectedOption,
+          optionShortText: chosenOpt?.shortText,
+          reasoningWordCount: cleanedReasoning.split(/\s+/).filter(Boolean).length,
+          reasoningQuality: analysis.reasoningQuality,
+          analysisSource: analysis.analysisSource,
+          fallbackReason: analysis.fallbackReason,
+          confidenceBand: analysis.confidenceBand,
+          confidence: analysis.confidence,
+          hasMisconception: analysis.misconceptionTags.length > 0,
+          standard: session!.standard,
+          readingLevel: session!.readingLevel,
+        });
+      }
+
       setPhase('coach');
     };
 
@@ -728,6 +786,21 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
         setDecisionImageUrl(null);
         setImageProviderLabel(null);
         setImageError(result.error ?? 'image-generation-unavailable');
+      }
+
+      if (typeof pendo !== 'undefined') {
+        pendo.track('decision_image_generated', {
+          nodeId: node.id,
+          optionId: selectedOption,
+          imageProvider: result.provider,
+          sceneSpecSource: result.sceneSpecSource,
+          imageSuccess: !!result.imageDataUrl,
+          errorType: result.error,
+          debugMessage: result.debugMessage?.substring(0, 200),
+          wasCached: result.provider === 'cache',
+          sessionId,
+          studentId,
+        });
       }
     }).catch(() => {
       if (imageRequestIdRef.current !== imageRequestId) return;
@@ -776,6 +849,7 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
         return analyzeReasoningSync(d.reasoning, d.optionId, n, session!.readingLevel).misconceptionTags;
       });
       const mergedTags = [...new Set([...optionTags, ...aiTags])];
+      const completedAt = Date.now();
       saveResult({
         id: studentId,
         sessionId,
@@ -784,8 +858,27 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
         decisions,
         finalScores,
         misconceptionTags: mergedTags,
-        completedAt: Date.now(),
+        completedAt,
       });
+
+      if (typeof pendo !== 'undefined') {
+        const totalScore = finalScores.survival + finalScores.economy + finalScores.diplomacy + finalScores.governance;
+        pendo.track('simulation_completed', {
+          sessionId,
+          studentId,
+          standard: session!.standard,
+          readingLevel: session!.readingLevel,
+          totalScore,
+          survivalScore: finalScores.survival,
+          economyScore: finalScores.economy,
+          diplomacyScore: finalScores.diplomacy,
+          governanceScore: finalScores.governance,
+          decisionCount: decisions.length,
+          misconceptionCount: mergedTags.length,
+          durationMs: completedAt - startedAt,
+        });
+      }
+
       onNavigate({ kind: 'student-debrief', sessionId, studentId });
     }
   }
