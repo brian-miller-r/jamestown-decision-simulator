@@ -1,9 +1,11 @@
+import { useEffect, useRef } from 'react';
 import { ArrowLeft, AlertTriangle, BookOpen, Users, ArrowRight, TrendingUp, Brain, Sparkles, RotateCcw } from 'lucide-react';
 import type { View, Scores, StudentResult, DecisionNode } from '../data/types';
 import { getSessionById, getResults } from '../data/store';
 import { getDecisionNodes, misconceptionMeta } from '../data/decisions';
 import { generateTeacherInsights, generateSmartComparison } from '../data/ai';
 import { DEMO_SESSION_ID, resetDemoData } from '../data/seed';
+import { trackNovusEvent } from '../data/analytics';
 import ScoreBar from '../components/ScoreBar';
 
 interface Props {
@@ -14,17 +16,7 @@ interface Props {
 export default function TeacherDashboardView({ sessionId, onNavigate }: Props) {
   const session = getSessionById(sessionId);
   const results = getResults(sessionId);
-
-  if (!session) {
-    return (
-      <div className="min-h-screen flex items-center justify-center px-6">
-        <div className="card text-center max-w-md">
-          <h2 className="text-xl font-bold text-zinc-200 mb-2">Session Not Found</h2>
-          <button className="btn-primary" onClick={() => onNavigate({ kind: 'home' })}>Back to Home</button>
-        </div>
-      </div>
-    );
-  }
+  const dashboardViewTrackedRef = useRef(false);
 
   // Aggregate misconceptions
   const misCounts: Record<string, number> = {};
@@ -36,6 +28,29 @@ export default function TeacherDashboardView({ sessionId, onNavigate }: Props) {
   const topMisconceptions = Object.entries(misCounts)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 3);
+  useEffect(() => {
+    if (!session || dashboardViewTrackedRef.current) return;
+    dashboardViewTrackedRef.current = true;
+    trackNovusEvent('teacher_dashboard_viewed', {
+      sessionId,
+      standard: session.standard,
+      readingLevel: session.readingLevel,
+      studentCount: results.length,
+      topMisconception: topMisconceptions[0]?.[0] ?? null,
+      topMisconceptionCount: topMisconceptions[0]?.[1] ?? 0,
+    });
+  }, [sessionId, session, results.length, topMisconceptions]);
+
+  if (!session) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-6">
+        <div className="card text-center max-w-md">
+          <h2 className="text-xl font-bold text-zinc-200 mb-2">Session Not Found</h2>
+          <button className="btn-primary" onClick={() => onNavigate({ kind: 'home' })}>Back to Home</button>
+        </div>
+      </div>
+    );
+  }
 
   // Average scores
   const avgScores: Scores = { survival: 0, economy: 0, diplomacy: 0, governance: 0 };

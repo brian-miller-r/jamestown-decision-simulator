@@ -81,7 +81,7 @@ export default function App() {
             <Brain className="w-5 h-5" />
           </div>
           {!desktopNavCollapsed && (
-            <p className="text-xs font-bold text-zinc-100 leading-tight">SOL Tutor.AI</p>
+            <p className="text-xs font-bold text-zinc-100 leading-tight">SOLTutor.ai</p>
           )}
           <button
             onClick={() => setDesktopNavCollapsed(!desktopNavCollapsed)}
@@ -154,7 +154,7 @@ export default function App() {
           >
             <Menu className="w-5 h-5" />
           </button>
-          <p className="text-sm font-semibold text-zinc-200">SOL Tutor.AI</p>
+          <p className="text-sm font-semibold text-zinc-200">SOLTutor.ai</p>
           <div className="w-9" />
         </header>
 

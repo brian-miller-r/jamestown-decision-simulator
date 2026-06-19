@@ -4,6 +4,7 @@ import type { View, StudentDecision, Scores, ReadingLevel } from '../data/types'
 import { getDecisionNodes } from '../data/decisions';
 import { getSessionById, saveResult, computeScores, extractMisconceptions } from '../data/store';
 import { analyzeReasoning, analyzeReasoningSync, generateDecisionImage, getScaffoldHint, type ReasoningAnalysis, type ScaffoldHint } from '../data/ai';
+import { trackNovusEvent, updateNovusVisitor } from '../data/analytics';
 import ScoreBar from '../components/ScoreBar';
 import Timer from '../components/Timer';
 
@@ -115,6 +116,7 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
   const [imageDebugMessage, setImageDebugMessage] = useState<string | null>(null);
   const [imageProviderLabel, setImageProviderLabel] = useState<string | null>(null);
   const imageRequestIdRef = useRef(0);
+  const simulationStartedTrackedRef = useRef(false);
 
 
   const session = getSessionById(sessionId);
@@ -248,6 +250,22 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
     }
   }
 
+  function handleBeginSimulation() {
+    if (!session) return;
+    if (!simulationStartedTrackedRef.current) {
+      simulationStartedTrackedRef.current = true;
+      trackNovusEvent('simulation_started', {
+        studentId,
+        displayName: studentName,
+        sessionId: session.id,
+        standard: session.standard,
+        readingLevel: session.readingLevel,
+        totalDecisions: decisionNodes.length,
+      });
+    }
+    setPhase('decide');
+  }
+
   if (!session) {
     return (
       <div className="min-h-screen flex items-center justify-center px-6">
@@ -285,7 +303,7 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
             <Brain className="w-4 h-4 text-amber-400" />
             <span>An AI coach will analyze your reasoning and give you personalized feedback</span>
           </div>
-          <button className="btn-primary bg-amber-500 hover:bg-amber-600 text-zinc-100" onClick={() => setPhase('decide')}>
+          <button className="btn-primary bg-amber-500 hover:bg-amber-600 text-zinc-100" onClick={handleBeginSimulation}>
             Begin the Simulation
           </button>
         </div>
@@ -670,6 +688,16 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
     const imageRequestId = imageRequestIdRef.current + 1;
     imageRequestIdRef.current = imageRequestId;
     const cleanedReasoning = reasoning.trim();
+    const reasoningWordCount = cleanedReasoning.split(/\s+/).filter(Boolean).length;
+    trackNovusEvent('decision_submitted', {
+      studentId,
+      sessionId,
+      standard: session!.standard,
+      nodeId: node.id,
+      decisionNumber: currentIdx + 1,
+      optionId: selectedOption,
+      reasoningWordCount,
+    });
     const newDecision: StudentDecision = {
       nodeId: node.id,
       optionId: selectedOption,
@@ -695,6 +723,18 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
         finalScores: scores,
         misconceptionTags: mergedTags,
         completedAt: 0,
+      });
+      trackNovusEvent('coaching_viewed', {
+        studentId,
+        sessionId,
+        standard: session!.standard,
+        nodeId: node.id,
+        decisionNumber: currentIdx + 1,
+        optionId: selectedOption,
+        analysisSource: analysis.analysisSource,
+        confidenceBand: analysis.confidenceBand,
+        reasoningQuality: analysis.reasoningQuality,
+        misconceptionCount: analysis.misconceptionTags.length,
       });
       setPhase('coach');
     };
@@ -776,6 +816,7 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
         return analyzeReasoningSync(d.reasoning, d.optionId, n, session!.readingLevel).misconceptionTags;
       });
       const mergedTags = [...new Set([...optionTags, ...aiTags])];
+      const completionTimestamp = Date.now();
       saveResult({
         id: studentId,
         sessionId,
@@ -784,7 +825,37 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
         decisions,
         finalScores,
         misconceptionTags: mergedTags,
-        completedAt: Date.now(),
+        completedAt: completionTimestamp,
+      });
+      const totalScore = Object.values(finalScores).reduce((sum, score) => sum + score, 0);
+      updateNovusVisitor({
+        id: studentId,
+        full_name: studentName,
+        displayName: studentName,
+        sessionId,
+        standard: session!.standard,
+        completedAt: completionTimestamp,
+        misconceptionTags: mergedTags,
+        survivalScore: finalScores.survival,
+        economyScore: finalScores.economy,
+        diplomacyScore: finalScores.diplomacy,
+        governanceScore: finalScores.governance,
+        totalScore,
+        decisionsCompleted: decisions.length,
+      });
+      trackNovusEvent('simulation_completed', {
+        studentId,
+        sessionId,
+        standard: session!.standard,
+        completedAt: completionTimestamp,
+        survivalScore: finalScores.survival,
+        economyScore: finalScores.economy,
+        diplomacyScore: finalScores.diplomacy,
+        governanceScore: finalScores.governance,
+        totalScore,
+        misconceptionCount: mergedTags.length,
+        totalDecisions: decisions.length,
+        durationSeconds: Math.max(1, Math.round((completionTimestamp - startedAt) / 1000)),
       });
       onNavigate({ kind: 'student-debrief', sessionId, studentId });
     }

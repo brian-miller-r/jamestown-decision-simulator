@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ArrowLeft, LogIn } from 'lucide-react';
 import type { View } from '../data/types';
 import { getSessionByCode } from '../data/store';
+import { identifyNovusVisitor, trackNovusEvent } from '../data/analytics';
 
 interface Props {
   onJoin: (view: View) => void;
@@ -26,20 +27,24 @@ export default function StudentJoinView({ onJoin, onBack }: Props) {
       return;
     }
     const studentId = crypto.randomUUID();
-    pendo.identify({
-      visitor: {
-        id: studentId,
-        full_name: trimmedName,
-        displayName: trimmedName,
-        sessionId: session.id,
-        standard: session.standard,
-        completedAt: 0,
-        misconceptionTags: [],
-        survivalScore: 0,
-        economyScore: 0,
-        diplomacyScore: 0,
-        governanceScore: 0,
-      }
+    identifyNovusVisitor({
+      id: studentId,
+      full_name: trimmedName,
+      displayName: trimmedName,
+      sessionId: session.id,
+      standard: session.standard,
+      completedAt: 0,
+      misconceptionTags: [],
+      survivalScore: 0,
+      economyScore: 0,
+      diplomacyScore: 0,
+      governanceScore: 0,
+    });
+    trackNovusEvent('student_session_joined', {
+      studentId,
+      displayName: trimmedName,
+      sessionId: session.id,
+      standard: session.standard,
     });
     onJoin({ kind: 'student-sim', sessionId: session.id, studentId, studentName: trimmedName });
   }

@@ -10,7 +10,7 @@ export default function SimulatorHomeView({ onNavigate }: { onNavigate: (v: View
         <div className="absolute inset-0 opacity-40">
           <img
             src="/Screenshot_2026-06-07_at_8.44.59_PM.png"
-            alt="Jamestown settlement on the James River"
+            alt="Virginia colonial decision simulation scene"
             className="w-full h-full object-cover"
           />
         </div>
@@ -23,11 +23,11 @@ export default function SimulatorHomeView({ onNavigate }: { onNavigate: (v: View
             </div>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4 drop-shadow-lg">
-            Jamestown Decision Simulator
+            SOLTutor.ai Decision Lab
           </h1>
           <p className="text-zinc-100 text-lg max-w-2xl mx-auto leading-relaxed drop-shadow-md">
-            A 7-minute branching simulation where students make real Jamestown decisions
-            and teachers instantly see misconception insights for SOL-aligned reteaching.
+            A fast, SOL-aligned simulation where students reason through colonial Virginia choices,
+            teachers get instant misconception insights, and Novus captures real usage signals.
           </p>
         </div>
       </header>
@@ -49,13 +49,13 @@ export default function SimulatorHomeView({ onNavigate }: { onNavigate: (v: View
                   onClick={() => onNavigate({ kind: 'teacher-setup' })}
                   className="btn-primary w-full"
                 >
-                  Teacher session
+                  Launch teacher session
                 </button>
               </div>
               <div className="mt-6 overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-50 p-2">
                 <img
                   src="/teacher-photo.png"
-                  alt="Teacher preparing students for a Jamestown lesson"
+                  alt="Teacher preparing students for a Virginia SOL lesson"
                   className="w-full h-auto rounded-xl object-contain"
                 />
               </div>
@@ -73,8 +73,8 @@ export default function SimulatorHomeView({ onNavigate }: { onNavigate: (v: View
               <h2 className="text-3xl font-bold text-zinc-100 mb-4">I'm a Student</h2>
               <div className="min-h-[88px]">
                 <p className="text-zinc-300 text-base leading-relaxed">
-                  Step into Jamestown, make decisions, explain your thinking, and get instant coaching
-                  on how your choices affect the colony.
+                  Step into a colonial Virginia scenario, make decisions, explain your thinking,
+                  and get instant coaching on how your choices affect the colony.
                 </p>
               </div>
               <div className="mt-6">
@@ -82,7 +82,7 @@ export default function SimulatorHomeView({ onNavigate }: { onNavigate: (v: View
                   onClick={() => onNavigate({ kind: 'student-join' })}
                   className="btn-primary w-full"
                 >
-                  Join student session
+                  Start student simulation
                 </button>
               </div>
               <div className="mt-6 overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-50 p-2">
@@ -106,7 +106,7 @@ export default function SimulatorHomeView({ onNavigate }: { onNavigate: (v: View
       </main>
 
       <footer className="text-center py-6 text-zinc-500 text-xs">
-        VS.3 &amp; VS.4 Aligned &middot; Virginia Standards of Learning &middot; Powered by Gemini AI
+        SOLTutor.ai &middot; VS.3 &amp; VS.4 Aligned &middot; Virginia Standards of Learning &middot; Powered by Gemini AI
       </footer>
     </div>
   );

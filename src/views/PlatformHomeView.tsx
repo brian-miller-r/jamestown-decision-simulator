@@ -1,6 +1,8 @@
 import type { LucideIcon } from 'lucide-react';
-import { ArrowRight, BarChart3, BookOpen, Brain, ChevronRight, Image } from 'lucide-react';
+import { ArrowRight, BarChart3, BookOpen, Brain, ChevronRight, Radar } from 'lucide-react';
 import type { View } from '../data/types';
+import { DEMO_SESSION_ID } from '../data/seed';
+import { trackNovusEvent } from '../data/analytics';
 interface UseCaseTile {
   title: string;
   description: string;
@@ -40,10 +42,10 @@ const useCaseTiles: UseCaseTile[] = [
     iconClass: 'text-amber-600',
   },
   {
-    title: 'SOL Scene Generation',
-    description: 'AI-generated visuals make concepts across all SOL modules vivid and memorable.',
-    eyebrow: 'Visuals',
-    icon: Image,
+    title: 'Novus Feedback Loop',
+    description: 'Built-in Novus analytics measure real learner behavior so iteration is evidence-based from day one.',
+    eyebrow: 'Measurement',
+    icon: Radar,
     borderClass: 'border-violet-200',
     gradientClass: 'from-violet-50 to-fuchsia-50',
     iconClass: 'text-violet-600',
@@ -51,6 +53,15 @@ const useCaseTiles: UseCaseTile[] = [
 ];
 
 export default function PlatformHomeView({ onNavigate }: { onNavigate: (v: View) => void }) {
+  function handleExploreSimulator() {
+    trackNovusEvent('home_cta_clicked', { cta: 'get_started', destination: 'simulator' });
+    onNavigate({ kind: 'simulator' });
+  }
+
+  function handleDemoClass() {
+    trackNovusEvent('home_cta_clicked', { cta: 'try_demo_class', destination: 'teacher_dashboard' });
+    onNavigate({ kind: 'teacher-dashboard', sessionId: DEMO_SESSION_ID });
+  }
   return (
     <div className="min-h-screen bg-zinc-100 text-zinc-900 flex flex-col font-sans">
       <main className="flex-1 px-6 py-14 md:py-20 relative overflow-hidden">
@@ -72,7 +83,7 @@ export default function PlatformHomeView({ onNavigate }: { onNavigate: (v: View)
               <ChevronRight className="w-4 h-4 text-zinc-500 transition-transform group-hover:translate-x-0.5" />
             </button>
             <p className="text-sm font-semibold uppercase tracking-[0.22em] text-zinc-500 mb-4">
-              SOLTutor.AI
+              SOLTutor.ai
             </p>
 
             <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 leading-tight text-zinc-950">
@@ -89,11 +100,18 @@ export default function PlatformHomeView({ onNavigate }: { onNavigate: (v: View)
 
             <div className="mt-10">
               <button
-                onClick={() => onNavigate({ kind: 'simulator' })}
+                onClick={handleExploreSimulator}
                 className="group inline-flex items-center gap-2 px-8 py-4 bg-zinc-950 text-white rounded-full text-lg font-medium hover:bg-zinc-800 transition-all duration-300 transform hover:scale-105 shadow-lg"
               >
                 Get Started
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </button>
+              <button
+                onClick={handleDemoClass}
+                className="ml-3 mt-4 md:mt-0 inline-flex items-center gap-2 px-6 py-3 rounded-full border border-zinc-300 bg-white text-zinc-800 text-base font-semibold hover:border-zinc-500 transition-colors"
+              >
+                Try Demo Class
+                <ArrowRight className="w-4 h-4" />
               </button>
             </div>
           </div>
@@ -123,10 +141,30 @@ export default function PlatformHomeView({ onNavigate }: { onNavigate: (v: View)
               );
             })}
           </div>
+          <div className="mt-12 rounded-3xl border border-zinc-300 bg-white p-6 md:p-8">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500 mb-3">Why SOLTutor.ai stands out</p>
+            <h2 className="text-2xl md:text-3xl font-bold text-zinc-900 mb-6">
+              Student coaching + teacher intelligence + measurable usage in Novus.
+            </h2>
+            <div className="grid md:grid-cols-3 gap-4 text-sm">
+              <div className="rounded-2xl border border-indigo-200 bg-indigo-50 p-4">
+                <p className="font-semibold text-indigo-900 mb-1">1) Student reasoning coach</p>
+                <p className="text-zinc-700">Learners explain decisions and get immediate Socratic coaching with evidence cues.</p>
+              </div>
+              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                <p className="font-semibold text-emerald-900 mb-1">2) Teacher misconception intelligence</p>
+                <p className="text-zinc-700">Class patterns and reteach priorities turn student responses into next-day action.</p>
+              </div>
+              <div className="rounded-2xl border border-violet-200 bg-violet-50 p-4">
+                <p className="font-semibold text-violet-900 mb-1">3) Novus feedback loop</p>
+                <p className="text-zinc-700">Behavioral events and outcomes make product iteration and learning impact visible.</p>
+              </div>
+            </div>
+          </div>
         </div>
       </main>
       <footer className="py-8 text-center text-zinc-500 text-sm border-t border-zinc-200">
-        &copy; {new Date().getFullYear()} SOL Tutor.AI. Powered by Gemini.
+        &copy; {new Date().getFullYear()} SOLTutor.ai. Powered by Gemini.
       </footer>
     </div>
   );
