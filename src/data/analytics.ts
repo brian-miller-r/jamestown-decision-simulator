@@ -5,12 +5,22 @@ function hasPendoSdk(): boolean {
   return typeof pendo !== 'undefined';
 }
 
+function getOrCreateVisitorId(): string {
+  const key = 'novus_visitor_id';
+  let id = localStorage.getItem(key);
+  if (!id) {
+    id = 'anon-' + crypto.randomUUID();
+    localStorage.setItem(key, id);
+  }
+  return id;
+}
+
 export function initializeNovus(): void {
   if (!hasPendoSdk()) return;
   try {
     pendo.initialize({
       visitor: {
-        id: 'anonymous',
+        id: getOrCreateVisitorId(),
       },
     });
   } catch (error) {
