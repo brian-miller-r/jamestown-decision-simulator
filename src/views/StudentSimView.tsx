@@ -12,6 +12,7 @@ interface Props {
   sessionId: string;
   studentId: string;
   studentName: string;
+  autoStart?: boolean;
   onNavigate: (v: View) => void;
 }
 
@@ -95,7 +96,7 @@ interface SpeechRecognitionLike {
 
 type SpeechRecognitionCtorLike = new () => SpeechRecognitionLike;
 
-export default function StudentSimView({ sessionId, studentId, studentName, onNavigate }: Props) {
+export default function StudentSimView({ sessionId, studentId, studentName, autoStart = false, onNavigate }: Props) {
   const [phase, setPhase] = useState<Phase>('intro');
   const [currentIdx, setCurrentIdx] = useState(0);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
@@ -140,6 +141,20 @@ export default function StudentSimView({ sessionId, studentId, studentName, onNa
       recognitionRef.current = null;
     };
   }, []);
+  useEffect(() => {
+    if (!autoStart || phase !== 'intro' || !session || simulationStartedTrackedRef.current) return;
+    simulationStartedTrackedRef.current = true;
+    trackNovusEvent('simulation_started', {
+      studentId,
+      displayName: studentName,
+      sessionId: session.id,
+      standard: session.standard,
+      readingLevel: session.readingLevel,
+      totalDecisions: decisionNodes.length,
+      source: 'try_demo_class',
+    });
+    setPhase('decide');
+  }, [autoStart, phase, session, studentId, studentName, decisionNodes.length]);
 
   // Reasoning scaffold — shows a Socratic nudge while student is typing
   // Shows after 400ms once they start typing, hides when reasoning is deep enough

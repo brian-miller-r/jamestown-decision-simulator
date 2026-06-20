@@ -2,7 +2,8 @@ import type { LucideIcon } from 'lucide-react';
 import { ArrowRight, BarChart3, BookOpen, Brain, ChevronRight, Radar } from 'lucide-react';
 import type { View } from '../data/types';
 import { DEMO_SESSION_ID } from '../data/seed';
-import { trackNovusEvent } from '../data/analytics';
+import { getSessionById } from '../data/store';
+import { identifyNovusVisitor, trackNovusEvent } from '../data/analytics';
 interface UseCaseTile {
   title: string;
   description: string;
@@ -59,8 +60,50 @@ export default function PlatformHomeView({ onNavigate }: { onNavigate: (v: View)
   }
 
   function handleDemoClass() {
-    trackNovusEvent('home_cta_clicked', { cta: 'try_demo_class', destination: 'teacher_dashboard' });
-    onNavigate({ kind: 'teacher-dashboard', sessionId: DEMO_SESSION_ID });
+    const demoSession = getSessionById(DEMO_SESSION_ID);
+    if (!demoSession) {
+      onNavigate({ kind: 'student-join' });
+      return;
+    }
+
+    const studentId = crypto.randomUUID();
+    const studentName = 'Demo';
+
+    identifyNovusVisitor({
+      id: studentId,
+      full_name: studentName,
+      displayName: studentName,
+      sessionId: demoSession.id,
+      standard: demoSession.standard,
+      completedAt: 0,
+      misconceptionTags: [],
+      survivalScore: 0,
+      economyScore: 0,
+      diplomacyScore: 0,
+      governanceScore: 0,
+    });
+
+    trackNovusEvent('home_cta_clicked', {
+      cta: 'try_demo_class',
+      destination: 'student_sim',
+      sessionId: demoSession.id,
+      sessionCode: demoSession.code,
+    });
+    trackNovusEvent('student_session_joined', {
+      studentId,
+      displayName: studentName,
+      sessionId: demoSession.id,
+      standard: demoSession.standard,
+      source: 'try_demo_class',
+    });
+
+    onNavigate({
+      kind: 'student-sim',
+      sessionId: demoSession.id,
+      studentId,
+      studentName,
+      autoStart: true,
+    });
   }
   return (
     <div className="min-h-screen bg-zinc-100 text-zinc-900 flex flex-col font-sans">

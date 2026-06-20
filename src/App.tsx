@@ -262,6 +262,7 @@ function renderView(view: View, navigate: (v: View) => void) {
           sessionId={view.sessionId}
           studentId={view.studentId}
           studentName={view.studentName}
+          autoStart={view.autoStart}
           onNavigate={navigate}
         />
       );
