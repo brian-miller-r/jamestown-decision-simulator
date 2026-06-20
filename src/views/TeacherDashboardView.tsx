@@ -106,6 +106,7 @@ export default function TeacherDashboardView({ sessionId, onNavigate }: Props) {
     } => value !== null);
 
   function handleResetDemo() {
+    trackNovusEvent('demo_data_reset', { sessionId });
     resetDemoData();
     onNavigate({ kind: 'teacher-dashboard', sessionId: DEMO_SESSION_ID });
   }

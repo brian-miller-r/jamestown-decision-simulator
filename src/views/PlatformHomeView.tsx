@@ -89,7 +89,7 @@ export default function PlatformHomeView({ onNavigate }: { onNavigate: (v: View)
       sessionId: demoSession.id,
       sessionCode: demoSession.code,
     });
-    trackNovusEvent('student_session_joined', {
+    trackNovusEvent('student_joined_session', {
       studentId,
       displayName: studentName,
       sessionId: demoSession.id,
