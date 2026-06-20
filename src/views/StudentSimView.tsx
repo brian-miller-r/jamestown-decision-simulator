@@ -216,11 +216,23 @@ export default function StudentSimView({ sessionId, studentId, studentName, auto
       if (!cleanChunk) return;
 
       setReasoning(prev => mergeDictationText(prev, cleanChunk));
+      trackNovusEvent('voice_dictation_used', {
+        studentId,
+        sessionId,
+        success: true,
+        wordCount: cleanChunk.split(/\s+/).filter(Boolean).length,
+      });
     };
 
     recognition.onerror = (event: SpeechRecognitionErrorEventLike) => {
       setIsDictating(false);
       setDictationError(errorMessageFromSpeechCode(event.error));
+      trackNovusEvent('voice_dictation_used', {
+        studentId,
+        sessionId,
+        success: false,
+        errorCode: event.error ?? 'unknown',
+      });
     };
 
     recognition.onend = () => {
@@ -770,6 +782,16 @@ export default function StudentSimView({ sessionId, studentId, studentName, auto
             : null
         ),
       );
+      trackNovusEvent('decision_image_generated', {
+        studentId,
+        sessionId,
+        nodeId: node.id,
+        decisionNumber: currentIdx + 1,
+        provider: result.provider ?? 'unknown',
+        success: !!result.imageDataUrl,
+        error: result.error ?? null,
+        fromCache: result.provider === 'cache',
+      });
       if (result.imageDataUrl) {
         setDecisionImageUrl(result.imageDataUrl);
         const providerLabel =

@@ -3,6 +3,7 @@ import { ArrowLeft, BookOpen, Sparkles, ChevronDown, Lightbulb } from 'lucide-re
 import type { View, StandardFocus, ReadingLevel } from '../data/types';
 import { createSession, getSessionById } from '../data/store';
 import { extractTextFromUpload, suggestReadingLevelFromWriting, type ReadingLevelSuggestion } from '../data/readingLevel';
+import { trackNovusEvent } from '../data/analytics';
 
 export default function TeacherSetupView({ onNavigate }: { onNavigate: (v: View) => void }) {
   const [standard, setStandard] = useState<StandardFocus>('VS.3');
@@ -19,6 +20,12 @@ export default function TeacherSetupView({ onNavigate }: { onNavigate: (v: View)
   function handleCreate() {
     const session = createSession(standard, readingLevel);
     setSessionId(session.id);
+    trackNovusEvent('session_created', {
+      sessionId: session.id,
+      sessionCode: session.code,
+      standard,
+      readingLevel,
+    });
   }
 
   async function handleSampleFileChange(event: ChangeEvent<HTMLInputElement>) {
@@ -36,9 +43,20 @@ export default function TeacherSetupView({ onNavigate }: { onNavigate: (v: View)
         throw new Error('Could not extract readable text from this file.');
       }
       setWritingSample(extracted);
+      trackNovusEvent('writing_sample_uploaded', {
+        fileName: file.name,
+        fileType: file.type || file.name.split('.').pop() || 'unknown',
+        success: true,
+      });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unable to process this file.';
       setAnalysisError(message);
+      trackNovusEvent('writing_sample_uploaded', {
+        fileName: file.name,
+        fileType: file.type || file.name.split('.').pop() || 'unknown',
+        success: false,
+        error: message,
+      });
     } finally {
       setAnalyzingSample(false);
       event.target.value = '';
@@ -57,6 +75,12 @@ export default function TeacherSetupView({ onNavigate }: { onNavigate: (v: View)
     setAnalysis(suggested);
     setReadingLevel(suggested.suggestedLevel);
     setExpandedReadingLevel(true);
+    trackNovusEvent('reading_level_analyzed', {
+      suggestedLevel: suggested.suggestedLevel,
+      estimatedGrade: suggested.estimatedGrade,
+      confidence: suggested.confidence,
+      wordCount: sample.split(/\s+/).filter(Boolean).length,
+    });
   }
 
   if (sessionId) {

@@ -40,7 +40,7 @@ export default function StudentJoinView({ onJoin, onBack }: Props) {
       diplomacyScore: 0,
       governanceScore: 0,
     });
-    trackNovusEvent('student_session_joined', {
+    trackNovusEvent('student_joined_session', {
       studentId,
       displayName: trimmedName,
       sessionId: session.id,

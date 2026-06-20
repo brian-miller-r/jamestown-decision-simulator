@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Key, Eye, EyeOff, Check, Trash2, ShieldCheck, ExternalLink } from 'lucide-react';
+import { trackNovusEvent } from '../data/analytics';
 
 function normalizeApiKeyInput(value: string): string {
   const trimmed = value.trim();
@@ -56,6 +57,7 @@ export default function SettingsView() {
     setGeminiDirty(false);
     setGeminiSaveSuccess(true);
     setTimeout(() => setGeminiSaveSuccess(false), 2500);
+    trackNovusEvent('api_key_saved', { provider: 'gemini' });
   }
 
   function handleXaiSave() {
@@ -65,6 +67,7 @@ export default function SettingsView() {
     setXaiDirty(false);
     setXaiSaveSuccess(true);
     setTimeout(() => setXaiSaveSuccess(false), 2500);
+    trackNovusEvent('api_key_saved', { provider: 'xai' });
   }
 
   function handleGeminiClear() {
@@ -72,6 +75,7 @@ export default function SettingsView() {
     setGeminiKey('');
     setGeminiDirty(false);
     setGeminiSaveSuccess(false);
+    trackNovusEvent('api_key_removed', { provider: 'gemini' });
   }
 
   function handleXaiClear() {
@@ -79,6 +83,7 @@ export default function SettingsView() {
     setXaiKey('');
     setXaiDirty(false);
     setXaiSaveSuccess(false);
+    trackNovusEvent('api_key_removed', { provider: 'xai' });
   }
 
   return (
